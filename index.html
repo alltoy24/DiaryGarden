@@ -333,6 +333,87 @@
         .control-group input[type="range"] { width: 100%; cursor: pointer; }
         .val-display { color: #fff; font-weight: bold; }
 
+        #island-info-panel {
+            position: fixed; top: 0; right: -400px; /* 오른쪽 밖에 숨기기 */
+            width: 380px; height: 100%;
+            background: rgba(10, 12, 15, 0.95); /* 검은색 배경 */
+            border-left: 1px solid rgba(212, 175, 55, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 5000;
+            padding: 40px 30px;
+            display: flex; flex-direction: column;
+            transition: right 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+        #island-info-panel.active { right: 0; }
+
+        /* 2. 패널 내부 타이포그래피 */
+        #panel-close-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: none; border: none; color: #666; font-size: 1.5rem; cursor: pointer; transition: color 0.3s;
+        }
+        #panel-close-btn:hover { color: #d4af37; }
+
+        .panel-header { margin-bottom: 30px; text-align: left; }
+        #panel-title-kr { font-family: 'Nanum Myeongjo', serif; font-size: 2.5rem; color: #fff; margin-bottom: 5px; }
+        #panel-title-en { font-family: 'Cinzel', serif; font-size: 0.9rem; color: #d4af37; letter-spacing: 0.2rem; text-transform: uppercase; }
+
+        .panel-stats { margin-bottom: 30px; }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-family: 'Cinzel', serif; font-size: 0.9rem; color: #ccc; }
+        .stat-value { color: #ffd700; font-weight: bold; }
+        .stat-bar-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 10px; }
+        .stat-bar-fill { height: 100%; background: #d4af37; width: 0%; transition: width 1s ease; box-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+
+        .panel-divider { width: 100%; height: 1px; background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.5), transparent); margin-bottom: 30px; }
+
+        /* 3. 일기 리스트 스타일 */
+        .panel-history h4 { font-family: 'Nanum Myeongjo', serif; color: #aaa; font-size: 0.9rem; margin-bottom: 15px; }
+        #panel-diary-list { list-style: none; overflow-y: auto; max-height: 60vh; padding-right: 5px; }
+        /* 스크롤바 커스텀 */
+        #panel-diary-list::-webkit-scrollbar { width: 4px; }
+        #panel-diary-list::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .diary-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 15px; margin-bottom: 10px;
+            border-radius: 5px; transition: all 0.3s ease;
+        }
+        .diary-item:hover { background: rgba(255,255,255,0.07); border-color: rgba(212, 175, 55, 0.3); transform: translateX(5px); }
+        .diary-date { font-family: 'Cinzel', serif; font-size: 0.7rem; color: #d4af37; margin-bottom: 5px; display: block; }
+        .diary-snippet { font-family: 'Nanum Myeongjo', serif; font-size: 0.9rem; color: #ddd; line-height: 1.4; }
+
+
+        /* --- [핵심] 월드 집중 모드 (World Focus Mode) --- */
+
+        /* 집중 모드 시 기존 UI 투명화 */
+        .world-focused #hud-layer, 
+        .world-focused #diary-open-btn,
+        .world-focused #cursor-tooltip { 
+            opacity: 0 !important; pointer-events: none; transition: opacity 0.5s ease; 
+        }
+
+        /* 선택되지 않은 섬들: 구름처럼 퍼지며 사라짐 */
+        .world-focused .island:not(.focused-island) {
+            opacity: 0 !important;
+            transform: translate(-50%, -100px) scale(1.5) !important; /* 위로 올라가며 커짐 */
+            filter: blur(10px);
+            pointer-events: none;
+            transition: all 1s ease;
+        }
+
+        .world-focused .island.focused-island {
+            /* 기존 25%는 너무 왼쪽입니다. 패널(380px)을 뺀 공간의 중앙을 계산합니다. */
+            left: calc(50% - 190px) !important; 
+            top: 50% !important;
+            
+            /* 확대 비율을 2.5배에서 1.8배 정도로 살짝 줄여서 안정감을 줍니다. */
+            transform: translate(-50%, -50%) scale(1.8) !important; 
+            
+            z-index: 1000;
+            filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.5)); /* 후광 더 강하게 */
+            transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
     </style>
 </head>
 <body>
@@ -427,6 +508,36 @@
         </div>
         <button id="enter-btn" class="enter-btn">정원 들어가기</button>
     </div>
+    
+    <aside id="island-info-panel">
+        <button id="panel-close-btn">✕</button>
+        
+        <div class="panel-header">
+            <h2 id="panel-title-kr">지혜의 정원</h2>
+            <h3 id="panel-title-en">Garden of Wisdom</h3>
+        </div>
+
+        <div class="panel-stats">
+            <div class="stat-row">
+                <span class="stat-label">CURRENT LEVEL</span>
+                <span class="stat-value" id="panel-lvl">Lv. 3</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">TOTAL POINTS</span>
+                <span class="stat-value" id="panel-pts">450</span>
+            </div>
+            <div class="stat-bar-bg"><div id="panel-progress-bar" class="stat-bar-fill"></div></div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <div class="panel-history">
+            <h4>기록된 양분 (Diary Log)</h4>
+            <ul id="panel-diary-list">
+                </ul>
+        </div>
+    </aside>
+
     <button id="diary-open-btn">
         WRITE DIARY
         <div class="btn-line"></div>
@@ -480,6 +591,136 @@
         const charCounter = document.getElementById('char-count-info');
         const diarySubmitBtn = document.getElementById('diary-submit');
         const diaryDateDisplay = document.getElementById('diary-date-display');
+
+        const sidePanel = document.getElementById('island-info-panel');
+        const panelCloseBtn = document.getElementById('panel-close-btn');
+        const panelDiaryList = document.getElementById('panel-diary-list');
+
+        // 더미 데이터 (나중엔 실제 일기 데이터와 연동)
+        const islandData = {
+            'wisdom': { 
+                kr: '지혜의 정원', en: 'Garden of Wisdom', 
+                logs: [
+                    { date: '2024.05.20', text: '오늘은 새로운 프로그래밍 언어를 배웠다. 어렵지만 원리를 깨닫는 과정이 즐거웠다.' },
+                    { date: '2024.05.18', text: '책을 읽다가 문득 내 삶의 방향성에 대한 힌트를 얻었다.' }
+                ] 
+            },
+            'courage': { 
+                kr: '용기의 정원', en: 'Garden of Courage', 
+                logs: [
+                    { date: '2024.05.21', text: '발표 공포증이 있었지만 손을 들고 내 의견을 말했다. 심장이 터질 것 같았지만 해냈다.' }
+                ] 
+            },
+            'kindness': { kr: '친절의 정원', en: 'Garden of Kindness', logs: [] },
+            'diligence': { kr: '성실의 정원', en: 'Garden of Diligence', logs: [] },
+            'serenity': { kr: '평온의 정원', en: 'Garden of Serenity', logs: [] }
+        };
+
+        // --- [핵심] 섬 클릭 이벤트 리스너 수정 ---
+        islandElements.forEach(island => {
+            // 1. 호버 효과 (기존 유지)
+            island.addEventListener('mouseenter', () => {
+                // 집중 모드가 아닐 때만 툴팁 표시
+                if(!document.body.classList.contains('world-focused') && island.classList.contains('visible')) {
+                    const sound = audioHover.cloneNode(); sound.volume = 0.1; sound.play().catch(()=>{});
+                    tooltipEn.innerText = island.dataset.nameEn;
+                    tooltipKr.innerText = island.dataset.nameKr;
+                    const points = parseInt(island.dataset.points);
+                    const lvl = calculateLevel(points);
+                    tooltipLvl.innerText = `Lv. ${lvl} (${points}pts)`;
+                    tooltip.classList.add('active');
+                }
+            });
+            island.addEventListener('mouseleave', () => { tooltip.classList.remove('active'); });
+
+            // 2. [NEW] 클릭 시 집중 모드 (Focus Mode) 진입
+            island.addEventListener('click', (e) => {
+                // 이미 집중 모드라면 무시
+                if (document.body.classList.contains('world-focused')) return;
+
+                e.stopPropagation(); // 배경 클릭 이벤트 전파 방지
+                const type = island.dataset.type;
+                const points = parseInt(island.dataset.points);
+                const level = calculateLevel(points);
+
+                // 1) 효과음 재생
+                audioClick.play();
+
+                // 2) 월드 상태 변경 (CSS 애니메이션 트리거)
+                document.body.classList.add('world-focused'); // body에 클래스 추가로 전체 제어
+                island.classList.add('focused-island'); // 클릭된 섬 마킹
+
+                // 3) 사이드 패널 데이터 채우기
+                document.getElementById('panel-title-kr').innerText = islandData[type].kr;
+                document.getElementById('panel-title-en').innerText = islandData[type].en;
+                document.getElementById('panel-lvl').innerText = `Lv. ${level}`;
+                document.getElementById('panel-pts').innerText = points;
+                
+                // 레벨바 채우기 (최대 레벨 10 기준 퍼센트)
+                document.getElementById('panel-progress-bar').style.width = `${(level / 10) * 100}%`;
+
+                // 일기 리스트 생성 (촤라라락)
+                panelDiaryList.innerHTML = ''; // 초기화
+                const logs = islandData[type].logs;
+                
+                if (logs.length === 0) {
+                    panelDiaryList.innerHTML = '<li style="color:#555; font-size:0.8rem; text-align:center; margin-top:20px;">아직 기록된 이야기가 없습니다.</li>';
+                } else {
+                    logs.forEach((log, index) => {
+                        const li = document.createElement('li');
+                        li.classList.add('diary-item');
+                        li.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`; // 순차적 등장
+                        li.style.opacity = '0'; // 애니메이션 시작 전 숨김
+                        li.innerHTML = `
+                            <span class="diary-date">${log.date}</span>
+                            <span class="diary-snippet">${log.text}</span>
+                        `;
+                        panelDiaryList.appendChild(li);
+                    });
+                }
+
+                // 4) 사이드 패널 열기
+                sidePanel.classList.add('active');
+            });
+        });
+
+        // --- [NEW] 집중 모드 해제 (패널 닫기) 함수 ---
+        function closeFocusMode() {
+            if (!document.body.classList.contains('world-focused')) return;
+
+            audioClick.play();
+            sidePanel.classList.remove('active'); // 패널 닫기
+            document.body.classList.remove('world-focused'); // 월드 복귀
+            
+            // 모든 섬에서 focused 클래스 제거
+            islandElements.forEach(isl => isl.classList.remove('focused-island'));
+        }
+
+        // 닫기 버튼 클릭
+        panelCloseBtn.addEventListener('click', closeFocusMode);
+
+        // 배경(월드) 클릭 시 닫기 (빈 공간 클릭)
+        worldContainer.addEventListener('click', (e) => {
+            // 섬이나 패널을 클릭한 게 아니라면 닫기
+            if(document.body.classList.contains('world-focused') && !e.target.closest('.island')) {
+                closeFocusMode();
+            }
+        });
+
+        // ESC 키 누르면 닫기
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeFocusMode();
+        });
+
+        // --- [추가] 리스트 애니메이션 정의 (스타일 태그에 넣어도 됨) ---
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(styleSheet);
 
         // --- 1. 버튼 호버 효과음 (기존 오디오 재활용) ---
         diaryOpenBtn.addEventListener('mouseenter', () => {
