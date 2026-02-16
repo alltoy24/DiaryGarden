@@ -336,7 +336,6 @@
     </style>
 </head>
 <body>
-    <audio id="bgm" src="SFX/bgm.mp3" loop></audio>
     <audio id="sfx-hover" src="SFX/hover.mp3"></audio>
     <audio id="sfx-click" src="SFX/click.mp3"></audio>
     <audio id="sfx-clear" src="SFX/cloud_clear.mp3"></audio>
@@ -466,7 +465,6 @@
         const tooltipLvl = document.getElementById('tooltip-lvl'); // 레벨 툴팁
         const devPanel = document.getElementById('dev-panel'); // 개발자 패널
 
-        const audioBgm = document.getElementById('bgm');
         const audioHover = document.getElementById('sfx-hover');
         const audioClick = document.getElementById('sfx-click');
         const audioClear = document.getElementById('sfx-clear');
@@ -767,14 +765,6 @@
                 hudLayer.style.opacity = '1'; 
                 updateParallax();
             }, 1000);
-
-            // [수정] 바람 소리 재생 시작(클릭 시점)으로부터 5초 뒤에 BGM 재생
-            setTimeout(() => { 
-                audioBgm.volume = 0.4; 
-                audioBgm.play(); 
-                // BGM이 들어올 때 구름 소리나 바람 소리를 살짝 줄여주면 더 고급스러워요
-                audioAmbiance.animate([{ volume: 0.3 }, { volume: 0.15 }], { duration: 2000, fill: 'forwards' });
-            }, 5000); 
 
             setTimeout(() => { 
                 uiLayer.style.display = 'none'; 
