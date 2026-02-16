@@ -414,6 +414,140 @@
             filter: drop-shadow(0 0 50px rgba(255, 215, 0, 0.5)); /* 후광 더 강하게 */
             transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1);
         }
+        /* --- [NEW] 결과 모달 스타일 --- */
+        #result-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px);
+            z-index: 6000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: all 0.8s ease;
+        }
+        #result-modal.active { opacity: 1; visibility: visible; }
+
+        .result-window {
+            width: 650px; padding: 60px;
+            background: linear-gradient(145deg, rgba(25, 30, 35, 0.9), rgba(10, 12, 15, 1));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+            text-align: center; position: relative;
+            transform: translateY(50px); transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #result-modal.active .result-window { transform: translateY(0); }
+
+        .result-subtitle { font-family: 'Cinzel', serif; color: #d4af37; letter-spacing: 0.3rem; font-size: 0.8rem; }
+        .result-title { font-family: 'Nanum Myeongjo', serif; font-size: 2.2rem; color: #fff; margin-top: 10px; margin-bottom: 40px; }
+
+        .result-content {
+            font-family: 'Nanum Myeongjo', serif; color: #ccc; line-height: 2; text-align: left;
+            max-height: 300px; overflow-y: auto; padding-right: 15px; margin-bottom: 40px; font-size: 1.05rem;
+        }
+
+        /* 포인트 아이콘 색상 정의 */
+        #result-point-up-area { display: flex; justify-content: center; gap: 15px; margin-bottom: 40px; flex-wrap: wrap; }
+        .point-badge {
+            padding: 8px 15px; border-radius: 20px; font-family: 'Cinzel', serif; font-size: 0.85rem;
+            font-weight: bold; animation: fadeInUp 0.5s ease forwards; opacity: 0;
+        }
+
+        /* 각 덕목별 컬러 (윤호님이 원하신 대로!) */
+        .badge-courage { border: 1px solid #ff6b6b; color: #ff6b6b; box-shadow: 0 0 10px rgba(255, 107, 107, 0.2); }
+        .badge-wisdom { border: 1px solid #4db8ff; color: #4db8ff; box-shadow: 0 0 10px rgba(77, 184, 255, 0.2); }
+        .badge-kindness { border: 1px solid #ff85a2; color: #ff85a2; box-shadow: 0 0 10px rgba(255, 133, 162, 0.2); }
+        .badge-diligence { border: 1px solid #2ecc71; color: #2ecc71; box-shadow: 0 0 10px rgba(46, 204, 113, 0.2); }
+        .badge-serenity { border: 1px solid #81ecec; color: #81ecec; box-shadow: 0 0 10px rgba(129, 236, 236, 0.2); }
+
+        #result-close-btn {
+            background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff;
+            padding: 12px 40px; font-family: 'Nanum Myeongjo', serif; cursor: pointer; transition: 0.3s;
+        }
+        #result-close-btn:hover { background: #fff; color: #000; border-color: #fff; }
+
+        /* 1. 에너지 구슬 (더 강력한 발광과 꼬리 효과) */
+        .energy-orb {
+            position: fixed;
+            width: 30px; height: 30px; /* 크기 약간 키움 */
+            background: radial-gradient(circle at 30% 30%, #fff, var(--orb-color));
+            border-radius: 50%;
+            z-index: 7000; pointer-events: none;
+            /* 핵심: 다중 그림자로 빛 번짐 + 꼬리 효과 연출 */
+            box-shadow: 
+                0 0 20px var(--orb-color),
+                0 0 40px var(--orb-color),
+                0 0 80px var(--orb-color);
+            opacity: 0; transform: scale(0); /* 시작 전 숨김 */
+            will-change: transform, left, top; /* 성능 최적화 */
+        }
+
+        /* 2. 구슬 이동 애니메이션 (직선 -> 곡선 느낌의 가감속) */
+        .energy-orb.flying {
+            opacity: 1; transform: scale(1);
+            /* 핵심 베지에 곡선: 처음엔 폭발적으로 빠르다가 중간에 살짝 느려지고,
+            도착 직전에 다시 빠르게 꽂히는 느낌 (로켓 발사 느낌)
+            */
+            transition: 
+                left 1.2s cubic-bezier(0.25, 0.1, 0.25, 1.2),
+                top 1.2s cubic-bezier(0.25, 0.1, 0.25, 1.2),
+                transform 0.3s ease-out,
+                opacity 0.3s ease-in;
+        }
+
+        .impact-ripple {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px; /* 작게 시작 */
+            border-radius: 50%;
+            /* 선이 아니라 면으로 퍼지는 빛의 느낌 */
+            background: radial-gradient(circle, var(--orb-color) 0%, transparent 70%);
+            filter: blur(8px); /* 몽환적인 느낌을 위해 블러 처리 */
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.8;
+            pointer-events: none; z-index: 999;
+        }
+
+        .impact-ripple.active {
+            /* 더 빠르고 우아하게 흩어짐 */
+            animation: rippleBurst 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes rippleBurst {
+            to { transform: translate(-50%, -50%) scale(8); opacity: 0; }
+        }
+
+        /* 2. 포인트 텍스트 (크기 축소 및 가독성 향상) */
+        .floating-point {
+            position: absolute; top: -30px; left: 50%;
+            transform: translateX(-50%) scale(0);
+            color: #fff;
+            font-family: 'Cinzel', serif; 
+            font-weight: 800; 
+            font-size: 0.7rem; /* 2rem -> 1.1rem으로 축소 */
+            letter-spacing: 0.1rem;
+            pointer-events: none; z-index: 1002;
+            text-shadow: 0 0 10px var(--orb-color), 0 2px 4px rgba(0,0,0,0.8);
+            white-space: nowrap;
+        }
+
+        /* 4. 섬 발광 (더 강렬하게) */
+        @keyframes island-flash-strong {
+            0% { filter: brightness(1) contrast(1); transform: scale(1); }
+            30% { filter: brightness(2.5) contrast(1.2) drop-shadow(0 0 50px var(--orb-color)); transform: scale(1.05); }
+            100% { filter: brightness(1) contrast(1); transform: scale(1); }
+        }
+        .flash-effect { animation: island-flash-strong 0.7s ease-out; }
+
+        /* 쫀득한 등장 애니메이션 */
+        .floating-point.pop {
+            animation: popUpElastic 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        /* 사라지는 애니메이션 */
+        .floating-point.fade {
+            transition: all 0.5s ease-out;
+            opacity: 0; transform: translate(-50%, -50px) scale(0.8);
+        }
+
+        @keyframes popUpElastic {
+            0% { opacity: 0; transform: translate(-50%, 20px) scale(0.5); }
+            60% { opacity: 1; transform: translate(-50%, -10px) scale(1.3); } /* 살짝 오버해서 커짐 */
+            100% { opacity: 1; transform: translate(-50%, 0) scale(1); } /* 제자리 */
+        }
     </style>
 </head>
 <body>
@@ -421,6 +555,8 @@
     <audio id="sfx-click" src="SFX/click.mp3"></audio>
     <audio id="sfx-clear" src="SFX/cloud_clear.mp3"></audio>
     <audio id="sfx-ambiance" src="SFX/ambiance.mp3" loop></audio>
+    <audio id="sfx-result" src="SFX/result.mp3"></audio>
+    <audio id="sfx-hit" src="SFX/hit.mp3"></audio>
 
     <div id="dev-panel">
         <h3>🌱 정원사 모드 (Point Controller)</h3>
@@ -550,11 +686,28 @@
                 <div id="diary-date-display">2024. 05. 21. TUE</div>
             </div>
             
-            <textarea id="diary-textarea" placeholder="오늘의 일들을 기록하세요... (100자 ~ 400자)"></textarea>
+            <textarea id="diary-textarea" placeholder="오늘의 일들을 기록하세요... (30자 ~ 200자)"></textarea>
             
-            <div class="char-counter" id="char-count-info">0 / 400</div>
+            <div class="char-counter" id="char-count-info">0 / 200</div>
             
             <button id="diary-submit" class="diary-submit-btn" disabled>나무 심기 (기록)</button>
+        </div>
+    </div>
+    <div id="result-modal">
+        <div class="result-window">
+            <div class="result-header">
+                <span class="result-subtitle">THE GARDENER'S INSIGHT</span>
+                <h2 class="result-title">정원사의 답장</h2>
+            </div>
+            
+            <div class="result-content" id="result-comment">
+                </div>
+
+            <div class="result-footer">
+                <div id="result-point-up-area">
+                    </div>
+                <button id="result-close-btn">정원으로 돌아가기</button>
+            </div>
         </div>
     </div>
 
@@ -595,6 +748,24 @@
         const sidePanel = document.getElementById('island-info-panel');
         const panelCloseBtn = document.getElementById('panel-close-btn');
         const panelDiaryList = document.getElementById('panel-diary-list');
+        const resultModal = document.getElementById('result-modal');
+        const resultComment = document.getElementById('result-comment');
+        const resultPointUpArea = document.getElementById('result-point-up-area');
+        const resultCloseBtn = document.getElementById('result-close-btn');
+        const audioResult = document.getElementById('sfx-result');
+        const audioHit = document.getElementById('sfx-hit');
+
+        // 누적 점수 상태 관리
+        let currentPoints = {
+            courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0
+        };
+
+        let currentLastResult = null;
+
+        const virtueColors = {
+            courage: '#ff6b6b', wisdom: '#4db8ff', kindness: '#ff85a2',
+            diligence: '#2ecc71', serenity: '#81ecec'
+        };
 
         // 더미 데이터 (나중엔 실제 일기 데이터와 연동)
         const islandData = {
@@ -615,6 +786,30 @@
             'diligence': { kr: '성실의 정원', en: 'Garden of Diligence', logs: [] },
             'serenity': { kr: '평온의 정원', en: 'Garden of Serenity', logs: [] }
         };
+
+        async function realAnalyzeDiary(diaryText) {
+            // 👇 윤호님의 Render 서버 주소로 연결합니다.
+            const url = "https://guelforest-server.onrender.com/analyze"; 
+
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                    // 🔐 Authorization 헤더 삭제! (이제 API 키는 서버에 있으니까요)
+                },
+                body: JSON.stringify({
+                    diaryText: diaryText // 서버로 '일기 내용'만 가볍게 보냅니다.
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || "서버 통신 실패");
+            }
+
+            // 서버가 이미 분석해서 깔끔한 JSON을 보내주므로 바로 리턴!
+            return await response.json(); 
+        }
 
         // --- [핵심] 섬 클릭 이벤트 리스너 수정 ---
         islandElements.forEach(island => {
@@ -739,13 +934,13 @@
             diaryDateDisplay.innerText = `${now.getFullYear()}. ${String(now.getMonth()+1).padStart(2,'0')}. ${String(now.getDate()).padStart(2,'0')}. ${['SUN','MON','TUE','WED','THU','FRI','SAT'][now.getDay()]}`;
         });
 
-        // --- 3. 글자 수 검증 로직 (100자 ~ 400자) ---
+        // --- 3. 글자 수 검증 로직 (30자 ~ 20자) ---
         diaryTextarea.addEventListener('input', () => {
             const len = diaryTextarea.value.length;
-            charCounter.innerText = `${len} / 400`;
+            charCounter.innerText = `${len} / 200`;
 
-            // 기획서 밸런싱 기준: 최소 100자, 최대 400자 [cite: 3, 17]
-            if (len >= 100 && len <= 400) {
+            // 기획서 밸런싱 기준: 최소 30자, 최대 200자 [cite: 3, 17]
+            if (len >= 30 && len <= 200) {
                 diarySubmitBtn.disabled = false;
                 charCounter.classList.remove('invalid');
             } else {
@@ -754,14 +949,145 @@
             }
         });
 
-        // --- 4. 등록 버튼 클릭 (성장 시스템과 연동 준비) ---
-        diarySubmitBtn.addEventListener('click', () => {
+        diarySubmitBtn.addEventListener('click', async () => {
+            const text = diaryTextarea.value;
+            diarySubmitBtn.disabled = true;
+            diarySubmitBtn.innerText = "정원사가 읽는 중... 🌿";
             audioClick.play();
-            alert("숲에 일기가 기록되었습니다. 덕목 포인트가 분석됩니다.");
-            // 여기에 나중에 OpenAI API 분석 및 포인트 분배 로직이 들어갑니다 [cite: 4, 5]
-            diaryModal.classList.remove('active');
-            diaryTextarea.value = '';
+
+            try {
+                const result = await realAnalyzeDiary(text);
+                
+                // [중요] 나중에 오브 연출에서 쓸 수 있도록 결과 저장!
+                currentLastResult = result; 
+
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+
+                resultPointUpArea.innerHTML = '';
+                
+                virtues.forEach((v, index) => {
+                    const p = result.points[v] || 0;
+                    if (p > 0) {
+                        currentPoints[v] += p;
+                        islandData[v].logs.unshift({ date: dateStr, text: text });
+                        
+                        const badge = document.createElement('div');
+                        badge.classList.add('point-badge', `badge-${v}`);
+                        badge.innerText = `${v.toUpperCase()} +${p}`;
+                        badge.style.animationDelay = `${0.8 + (index * 0.1)}s`;
+                        resultPointUpArea.appendChild(badge);
+
+                        // 화면 업데이트
+                        const slider = document.getElementById(`rng-${v}`);
+                        const display = document.getElementById(`val-${v}`);
+                        if (slider) slider.value = currentPoints[v];
+                        if (display) display.innerText = currentPoints[v];
+                        updateIslandVisual(v, currentPoints[v]);
+                    }
+                });
+
+                resultComment.innerText = result.comment;
+
+                diaryModal.classList.remove('active');
+                setTimeout(() => {
+                    resultModal.classList.add('active');
+                    // [에러방지] 효과음 파일 없어도 코드 안 멈추게 catch 추가
+                    audioResult.volume = 0.6;
+                    audioResult.play().catch(e => console.warn("결과 효과음 로드 실패:", e));
+                }, 500);
+
+                diaryTextarea.value = '';
+                charCounter.innerText = "0 / 200";
+
+            } catch (err) {
+                console.error(err);
+                alert("숲의 기운(API)이 불안정합니다. CORS 설정을 확인해주세요!");
+            } finally {
+                diarySubmitBtn.disabled = false;
+                diarySubmitBtn.innerText = "나무 심기 (기록)";
+            }
         });
+
+        resultCloseBtn.addEventListener('click', () => {
+            resultModal.classList.remove('active');
+
+            // 이제 currentLastResult가 정의되어 에러가 나지 않습니다!
+            if (!currentLastResult) return;
+
+            Object.keys(currentLastResult.points).forEach((v, index) => {
+                const p = currentLastResult.points[v];
+                if (p > 0) {
+                    setTimeout(() => {
+                        createOrbToIsland(v, p);
+                    }, index * 250); // 구슬이 하나씩 순차적으로 날아감
+                }
+            });
+        });
+
+        function createOrbToIsland(virtue, points) {
+            const island = document.getElementById(`island-${virtue}`);
+            const islandImg = document.getElementById(`img-${virtue}`);
+            const islandRect = island.getBoundingClientRect();
+            const color = virtueColors[virtue];
+            
+            const orb = document.createElement('div');
+            orb.classList.add('energy-orb');
+            orb.style.setProperty('--orb-color', color);
+            
+            orb.style.left = `${window.innerWidth / 2}px`;
+            orb.style.top = `${window.innerHeight / 2}px`;
+            document.body.appendChild(orb);
+
+            orb.offsetHeight; 
+
+            setTimeout(() => {
+                orb.classList.add('flying');
+                const targetX = islandRect.left + islandRect.width / 2;
+                const targetY = islandRect.top + islandRect.height / 2;
+                orb.style.left = `${targetX - 15}px`; 
+                orb.style.top = `${targetY - 15}px`;
+            }, 100);
+
+            // [충돌 시점]
+            setTimeout(() => {
+                orb.remove();
+
+                // A. [NEW] 타격 효과음 재생
+                if(audioHit) {
+                    const hitSound = audioHit.cloneNode();
+                    hitSound.volume = 0.4;
+                    hitSound.play().catch(()=>{});
+                }
+
+                // B. 섬 발광
+                islandImg.classList.add('flash-effect');
+                setTimeout(() => islandImg.classList.remove('flash-effect'), 700);
+
+                // C. [개선] 충격파 생성
+                const ripple = document.createElement('div');
+                ripple.classList.add('impact-ripple');
+                ripple.style.setProperty('--orb-color', color);
+                island.appendChild(ripple);
+                setTimeout(() => ripple.classList.add('active'), 10);
+                setTimeout(() => ripple.remove(), 600);
+
+                // D. [개선] 작고 예쁜 텍스트 팝업
+                const popup = document.createElement('div');
+                popup.classList.add('floating-point');
+                popup.style.setProperty('--orb-color', color);
+                popup.innerText = `+${points} PTS`;
+                island.appendChild(popup);
+                
+                setTimeout(() => popup.classList.add('pop'), 10);
+
+                setTimeout(() => {
+                    popup.classList.add('fade');
+                    setTimeout(() => popup.remove(), 500);
+                }, 1200); // 표시 시간도 살짝 단축하여 경쾌하게
+
+            }, 1300);
+        }
 
         diaryCloseX.addEventListener('click', () => { 
             // [중요] style.display = 'none' 대신 클래스 제거!
@@ -830,9 +1156,6 @@
                 updateIslandVisual(v, points);
             });
         });
-
-
-        // ... (이하 기존 파티클, 시간, 파럴랙스 로직 유지) ...
 
         function createStars() {
             const count = 100;
