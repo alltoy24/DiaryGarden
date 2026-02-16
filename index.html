@@ -340,6 +340,7 @@
     <audio id="sfx-hover" src="SFX/hover.mp3"></audio>
     <audio id="sfx-click" src="SFX/click.mp3"></audio>
     <audio id="sfx-clear" src="SFX/cloud_clear.mp3"></audio>
+    <audio id="sfx-ambiance" src="SFX/ambiance.mp3" loop></audio>
 
     <div id="dev-panel">
         <h3>🌱 정원사 모드 (Point Controller)</h3>
@@ -469,6 +470,7 @@
         const audioHover = document.getElementById('sfx-hover');
         const audioClick = document.getElementById('sfx-click');
         const audioClear = document.getElementById('sfx-clear');
+        const audioAmbiance = document.getElementById('sfx-ambiance');
         const hudDate = document.getElementById('hud-date');
         const hudTime = document.getElementById('hud-time');
 
@@ -487,6 +489,7 @@
             sound.volume = 0.4;
             sound.play().catch(()=>{});
         });
+
 
         // --- 2. 모달 열기/닫기 ---
         diaryOpenBtn.addEventListener('click', () => {
@@ -739,50 +742,43 @@
 
         enterBtn.addEventListener('mouseenter', () => { const sound = audioHover.cloneNode(); sound.volume = 0.5; sound.play().catch(()=>{}); });
         enterBtn.addEventListener('click', () => {
-            // 1. 즉시 실행: 클릭 효과음, 인트로 UI 페이드아웃, 월드 확대(진입) 애니메이션 시작
+            // [즉시 실행] 효과음, UI 페이드아웃, 월드 확대
             audioClick.play();
+            
+            // [수정] 클릭하자마자 구름 걷히는 소리와 바람 소리 즉시 재생
+            audioClear.volume = 1.0;
+            audioClear.play();
+            
+            audioAmbiance.volume = 0.3; // 바람 소리는 은은하게
+            audioAmbiance.play();
+
             uiLayer.style.opacity = '0';
             isClearing = true;
             worldContainer.style.transform = "scale(2.0)"; 
 
-            // 2. 1초 뒤: 본격적으로 정원의 요소들을 화면에 배치
             setTimeout(() => {
                 isGardenMode = true;
-
-                // 모든 섬과 장식 파편들 표시
                 const allSceneObjects = document.querySelectorAll('.scene-object');
-                allSceneObjects.forEach((obj) => { 
-                    obj.classList.add('visible'); 
-                });
+                allSceneObjects.forEach((obj) => { obj.classList.add('visible'); });
 
-                // [중요] 일기 쓰기 버튼 등장
-                if (diaryOpenBtn) {
-                    diaryOpenBtn.classList.add('visible');
-                }
+                if (diaryOpenBtn) diaryOpenBtn.classList.add('visible');
 
-                // 구름 바닥, HUD, 개발자 패널(슬라이더) 표시
                 cloudFloor.style.opacity = '1'; 
                 hudLayer.style.opacity = '1'; 
-
-                // 시야 시차(Parallax) 효과 시작
                 updateParallax();
             }, 1000);
 
-            // 3. 1.5초 뒤: 인트로 UI 레이어를 완전히 제거해서 클릭 방해를 막음
-            setTimeout(() => { 
-                uiLayer.style.display = 'none'; 
-            }, 1500);
-
-            // 4. 효과음 및 배경음악 타이밍 조절
-            setTimeout(() => { 
-                audioClear.volume = 1.0; 
-                audioClear.play(); 
-            }, 2500);
-
+            // [수정] 바람 소리 재생 시작(클릭 시점)으로부터 5초 뒤에 BGM 재생
             setTimeout(() => { 
                 audioBgm.volume = 0.4; 
                 audioBgm.play(); 
-            }, 8000);
+                // BGM이 들어올 때 구름 소리나 바람 소리를 살짝 줄여주면 더 고급스러워요
+                audioAmbiance.animate([{ volume: 0.3 }, { volume: 0.15 }], { duration: 2000, fill: 'forwards' });
+            }, 5000); 
+
+            setTimeout(() => { 
+                uiLayer.style.display = 'none'; 
+            }, 1500);
         });
 
         initIntroParticles(); animateParticles();
