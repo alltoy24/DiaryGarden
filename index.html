@@ -3,261 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>글숲 - 글이 정원을 만들다</title>
+    <title>글숲 - 글이 정원을 만들다 (Evolution Dev)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Noto+Serif+KR:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-        }
+        /* --- [Diary 전용 스타일 정리] --- */
 
-        body, html {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-        }
-
-        /* 월드 컨테이너: 3배 줌인을 견디도록 설정 */
-        #world-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 4s cubic-bezier(0.25, 1, 0.5, 1);
-            transform-origin: center center; /* 정확히 중앙으로 파고듦 */
-        }
-
-        /* 하늘 배경 */
-        #sky-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to bottom, #2b32b2, #1488cc, #e0f7fa);
-            z-index: 1;
-        }
-
-        /* 구름 캔버스 */
-        #cloud-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10; 
-            pointer-events: none;
-        }
-
-        /* UI 레이어 */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 20;
-            padding: 80px; 
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; 
-            align-items: flex-start;
-            transition: opacity 1.5s ease-out;
-            background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0) 80%);
-        }
-
-        .title-group {
-            margin-bottom: 60px;
-            color: white;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        h1.main-title {
-            font-family: 'Nanum Brush Script', cursive; 
-            font-size: 7rem; 
-            font-weight: 400;
-            letter-spacing: 0.1rem;
-            margin-bottom: 10px;
-            line-height: 1.1;
-        }
-
-        h2.sub-title {
-            font-family: 'Noto Serif KR', serif; 
-            font-size: 1.5rem;
-            font-weight: 300;
-            opacity: 0.9;
-            letter-spacing: 0.3rem;
-            margin-left: 10px; 
-        }
-
-        .enter-btn {
+        /* 1. 일기 열기 버튼 (우측 하단) */
+        #diary-open-btn {
+            position: fixed;
+            bottom: 50px;
+            right: 50px;
+            z-index: 1000;
             background: transparent;
             border: none;
-            color: white;
-            font-family: 'Noto Serif KR', serif;
-            font-size: 1.6rem;
+            color: #d4af37;
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.2rem;
             cursor: pointer;
-            padding-bottom: 5px;
-            margin-left: 10px;
-            position: relative;
-            opacity: 0.9;
-            transition: opacity 0.3s;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-
-        .enter-btn:hover {
-            opacity: 1;
-        }
-
-        .enter-btn::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 100%;
-            height: 1px;
-            background-color: white;
-            transform: scaleX(0); 
-            transform-origin: left;
-            transition: transform 0.4s ease-out;
-            box-shadow: 0 0 10px rgba(255,255,255,0.8);
-        }
-
-        .enter-btn:hover::after {
-            transform: scaleX(1); 
-        }
-
-        /* --- 섬 (Islands) 스타일 [핵심 수정] --- */
-        #islands-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        .island {
-            position: absolute;
-            /* [중요] 초기 크기를 작게 설정 (80px). 
-               나중에 3배 줌인 되면 240px로 보임. */
-            width: 80px; 
-            height: auto;
-            opacity: 0; /* 초기 투명 */
-            
-            /* 등장 애니메이션 */
-            transform: translateY(20px); 
-            transition: opacity 2.5s ease-in-out, transform 2.5s ease-out; /* 페이드인 시간 늘림 */
-            
+            opacity: 0; 
+            visibility: hidden;
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-end;
-            color: #fff;
-            /* 텍스트도 줌인 되면 커지므로 초기엔 작게 설정 */
-            font-size: 0.5rem; 
-            font-family: 'Noto Serif KR', serif;
-            font-weight: 500;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
         }
+
+        #diary-open-btn.visible { 
+            opacity: 0.7; 
+            visibility: visible;
+            pointer-events: auto; 
+        }
+
+        #diary-open-btn:hover { 
+            opacity: 1; 
+            transform: translateY(-5px); 
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.6); 
+        }
+
+        .btn-line {
+            width: 0%; height: 1px; background: #d4af37;
+            transition: width 0.4s ease; margin-top: 5px;
+        }
+        #diary-open-btn:hover .btn-line { width: 100%; }
+
+        /* 2. 일기 모달 전체 배경 */
+        #diary-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px); /* 숲이 몽환적으로 비침 */
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; 
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.6s ease, visibility 0.6s ease;
+        }
+
+        #diary-modal.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* 3. 일기 작성 창 (디자인 핵심) */
+        .diary-window {
+            width: 550px;
+            background: linear-gradient(145deg, rgba(20, 25, 30, 0.95), rgba(10, 12, 15, 0.98));
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            padding: 50px 40px;
+            position: relative;
+            box-shadow: 0 40px 100px rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            /* 애니메이션: 살짝 아래에서 부드럽게 떠오름 */
+            transform: translateY(30px) scale(0.98);
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #diary-modal.active .diary-window {
+            transform: translateY(0) scale(1);
+        }
+
+        .diary-header {
+            margin-bottom: 25px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+            padding-bottom: 20px;
+        }
+
+        #diary-date-display {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            color: #ffd700;
+            letter-spacing: 0.1rem;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        /* 4. 텍스트 입력 영역 (중복 스타일 통합) */
+        #diary-textarea {
+            width: 100%;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.02);
+            border: none;
+            color: #e0e0e0;
+            font-family: 'Nanum Pen Script', cursive;
+            font-size: 1rem;
+            line-height: 1.8;
+            resize: none;
+            outline: none;
+            padding: 15px;
+            transition: background 0.3s ease;
+        }
+
+        #diary-textarea:focus {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        #diary-textarea::placeholder {
+            color: #555;
+            font-family: 'Nanum Myeongjo', serif;
+            font-size: 1rem;
+        }
+
+        /* 5. 버튼 및 기타 요소 */
+        .char-counter {
+            text-align: right;
+            font-family: 'Cinzel', serif;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 15px;
+        }
+
+        .char-counter.invalid { color: #cc4444; }
+
+        .diary-submit-btn {
+            margin-top: 30px;
+            background: transparent;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #d4af37;
+            font-family: 'Nanum Myeongjo', serif;
+            font-size: 1rem;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+        }
+
+        .diary-submit-btn:disabled { 
+            border-color: #333; color: #444; cursor: not-allowed; 
+        }
+
+        .diary-submit-btn:not(:disabled):hover { 
+            background: rgba(212, 175, 55, 0.1); 
+            border-color: #d4af37;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px; right: 25px;
+            color: rgba(212, 175, 55, 0.5); 
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal:hover { 
+            color: #d4af37; 
+            transform: rotate(90deg); 
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px; right: 20px;
+            color: #888; cursor: pointer;
+            font-family: sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; cursor: default; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+
+        /* 월드 컨테이너 */
+        #world-container {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 3.5s cubic-bezier(0.25, 1, 0.5, 1);
+            transform-origin: center center; overflow: hidden; 
+        }
+
+        /* 배경 */
+        #sky-bg {
+            position: absolute; top: -20%; left: -20%; width: 140%; height: 140%;
+            background: linear-gradient(160deg, #0f2027 0%, #203a43 60%, #2c5364 100%);
+            z-index: 1; transition: background 3s ease-in-out;
+        }
+
+        /* 별 (밤) */
+        #stars-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2; pointer-events: none; opacity: 0; transition: opacity 3s ease-in-out;
+        }
+        .star {
+            position: absolute; background-color: white; border-radius: 50%;
+            box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.4);
+            animation: twinkle var(--duration) ease-in-out infinite; opacity: var(--opacity);
+        }
+        @keyframes twinkle { 0%, 100% { opacity: var(--opacity); transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.8); } }
+
+        /* 바닥 운해 */
+        #cloud-floor {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 40%;
+            background: linear-gradient(to top, rgba(255,255,255,0.95) 10%, rgba(220,230,255,0.8) 40%, rgba(255,255,255,0) 100%);
+            z-index: 3; pointer-events: none; opacity: 0; transition: opacity 3s ease-in-out;
+        }
+
+        /* 파티클 캔버스 */
+        #particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
+
+        /* UI 레이어 */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
+            padding: 60px; display: flex; flex-direction: column; justify-content: flex-start; align-items: flex-start;
+            transition: opacity 1.5s ease-out; background: linear-gradient(to right, rgba(0,0,0,0.5) 0%, transparent 50%);
+        }
+
+        /* 툴팁 */
+        #cursor-tooltip {
+            position: fixed; z-index: 200; top: 0; left: 0; pointer-events: none; opacity: 0;
+            transform: translate(20px, -20px); transition: opacity 0.2s ease, transform 0.2s ease;
+            display: flex; flex-direction: column; align-items: flex-start;
+        }
+        #cursor-tooltip.active { opacity: 1; transform: translate(25px, -25px); }
+        .tooltip-line { width: 40px; height: 2px; background: #d4af37; margin-bottom: 5px; box-shadow: 0 0 8px rgba(212, 175, 55, 0.8); }
+        #tooltip-kr { font-family: 'Nanum Myeongjo', serif; font-size: 1.5rem; color: #fff; font-weight: 700; text-shadow: 0 2px 10px rgba(0,0,0,0.8); letter-spacing: 0.1rem; line-height: 1; margin-bottom: 3px; }
+        #tooltip-en { font-family: 'Cinzel', serif; font-size: 0.7rem; color: rgba(255, 255, 255, 0.7); letter-spacing: 0.2rem; text-transform: uppercase; }
+        .tooltip-level { font-family: 'Cinzel', serif; font-size: 0.8rem; color: #ffd700; margin-top: 5px; } /* 레벨 표시 추가 */
+
+        /* HUD */
+        #hud-layer {
+            position: fixed; top: 50px; left: 50px; z-index: 90; opacity: 0; transition: opacity 3s ease-in-out;
+            font-family: 'Nanum Myeongjo', serif; color: rgba(255, 255, 255, 0.8);
+            display: flex; align-items: center; pointer-events: none;
+        }
+        #hud-line { width: 1px; height: 35px; background-color: rgba(255,255,255,0.4); margin-right: 15px; }
+        #hud-text-group { display: flex; flex-direction: column; }
+        #hud-date { font-size: 0.8rem; letter-spacing: 0.1rem; opacity: 0.6; margin-bottom: 2px;}
+        #hud-time { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 400; line-height: 1; }
+
+        .title-group { margin-bottom: 50px; color: white; text-shadow: 0 2px 15px rgba(0,0,0,0.5); }
+        h1.main-title { font-family: 'Nanum Myeongjo', serif; font-size: 5rem; font-weight: 700; letter-spacing: 0.3rem; margin-bottom: 10px; line-height: 1.1; }
+        h2.sub-title { font-family: 'Nanum Myeongjo', serif; font-size: 1.2rem; font-weight: 400; opacity: 0.8; letter-spacing: 0.4rem; margin-left: 5px; }
+
+        .enter-btn {
+            background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; font-family: 'Nanum Myeongjo', serif; font-size: 1.1rem; cursor: pointer; padding: 10px 30px; margin-left: 5px; position: relative; opacity: 0.8; transition: all 0.3s;
+        }
+        .enter-btn:hover { opacity: 1; background: rgba(255,255,255,0.1); border-color: #fff; }
+
+        /* --- 섬 컨테이너 --- */
+        #islands-container {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; perspective: 1000px;
+        }
+        .scene-object {
+            position: absolute; opacity: 0; transition: opacity 2s ease-in-out;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            will-change: transform; pointer-events: auto; cursor: pointer;
+        }
+        .scene-object.visible { opacity: 1; }
 
         .island img {
-            width: 100%;
-            height: auto;
-            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4));
-            margin-bottom: 5px;
+            width: 100%; height: auto;
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6)) brightness(0.9);
             animation: float 6s ease-in-out infinite;
+            /* 이미지 교체시 부드럽게 */
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s ease, opacity 0.3s ease; 
         }
-
-        .island:nth-child(1) img { animation-delay: 0s; }
-        .island:nth-child(2) img { animation-delay: 1s; }
-        .island:nth-child(3) img { animation-delay: 2s; }
-        .island:nth-child(4) img { animation-delay: 3s; }
-        .island:nth-child(5) img { animation-delay: 4s; }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); } /* 움직임 폭도 줌인 고려해서 줄임 */
+        .island:hover img {
+            transform: scale(1.1) translateY(-10px);
+            filter: drop-shadow(0 30px 50px rgba(255,255,255,0.2)) brightness(1.3);
+            z-index: 50;
         }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-        /* --- [핵심] 섬 배치 좌표 수정 --- 
-           화면 중앙(50%, 50%)을 기준으로 아주 가깝게 배치합니다.
-           3배 줌인이 되면 이 간격들이 3배로 벌어지며 화면을 꽉 채우게 됩니다.
-        */
-        
-        /* 1. 친절 (중앙 하단) */
-        /* top 58% -> 줌인 시 바닥 쪽으로 내려감 */
-        #island-kindness { top: 58%; left: 50%; transform: translate(-50%, 20px); z-index: 6; }
-        
-        /* 2. 용기 (왼쪽 중간) */
-        /* left 40% -> 줌인 시 화면 왼쪽으로 이동 */
-        #island-courage { top: 50%; left: 40%; transform: translate(-50%, 20px); }
-        
-        /* 3. 성실 (오른쪽 중간) */
-        /* left 60% -> 줌인 시 화면 오른쪽으로 이동 */
-        #island-diligence { top: 50%; left: 60%; transform: translate(-50%, 20px); }
-        
-        /* 4. 지혜 (왼쪽 상단) */
-        /* top 42% -> 줌인 시 위쪽으로 올라감 */
-        #island-wisdom { top: 42%; left: 42%; transform: translate(-50%, 20px); z-index: 4; }
-        
-        /* 5. 평온 (오른쪽 상단) */
-        #island-serenity { top: 42%; left: 58%; transform: translate(-50%, 20px); z-index: 4; }
+        /* 섬 배치 */
+        #island-kindness { width: 90px; z-index: 20; top: 55%; left: 50%; transform: translate(-50%, 0); }
+        #island-courage { width: 70px; z-index: 15; top: 50%; left: 38%; transform: translate(-50%, 0); }
+        #island-diligence { width: 70px; z-index: 15; top: 50%; left: 62%; transform: translate(-50%, 0); }
+        #island-wisdom { width: 50px; z-index: 10; top: 43%; left: 42%; transform: translate(-50%, 0); }
+        #island-serenity { width: 50px; z-index: 10; top: 43%; left: 58%; transform: translate(-50%, 0); }
 
+        /* 장식물 파편 */
+        .shard {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.05));
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
+            backdrop-filter: blur(2px);
+            z-index: 5; pointer-events: none; opacity: 0; transition: opacity 2s;
+            animation: shard-spin 15s linear infinite alternate;
+        }
+        .shard.visible { opacity: 0.6; }
+        @keyframes shard-spin { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(-20px) rotate(15deg); } }
 
-        /* 등장 시 스타일 (동시 등장) */
-        /* translate(-50%)를 유지하면서 Y축만 0으로 만드는 테크닉 */
-        .island.visible { opacity: 1; }
-        
-        #island-kindness.visible { transform: translate(-50%, 0); }
-        #island-courage.visible { transform: translate(-50%, 0); }
-        #island-diligence.visible { transform: translate(-50%, 0); }
-        #island-wisdom.visible { transform: translate(-50%, 0); }
-        #island-serenity.visible { transform: translate(-50%, 0); }
+        /* --- [수정] 개발자용 컨트롤 패널: 왼쪽으로 이동 --- */
+        #dev-panel {
+            position: fixed; 
+            bottom: 20px; 
+            left: 20px; /* right에서 left로 변경 */
+            right: auto; /* 기존 우측 고정 해제 */
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.7); 
+            backdrop-filter: blur(5px);
+            padding: 20px; 
+            border-radius: 10px; 
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: white; 
+            font-family: sans-serif; 
+            width: 250px;
+            display: none; 
+        }
+        #dev-panel h3 { font-size: 14px; margin-bottom: 10px; color: #ffd700; border-bottom: 1px solid #555; padding-bottom: 5px; }
+        .control-group { margin-bottom: 10px; display: flex; flex-direction: column; }
+        .control-group label { font-size: 12px; margin-bottom: 2px; color: #ccc; display: flex; justify-content: space-between; }
+        .control-group input[type="range"] { width: 100%; cursor: pointer; }
+        .val-display { color: #fff; font-weight: bold; }
 
     </style>
 </head>
 <body>
-
     <audio id="bgm" src="SFX/bgm.mp3" loop></audio>
     <audio id="sfx-hover" src="SFX/hover.mp3"></audio>
     <audio id="sfx-click" src="SFX/click.mp3"></audio>
     <audio id="sfx-clear" src="SFX/cloud_clear.mp3"></audio>
 
+    <div id="dev-panel">
+        <h3>🌱 정원사 모드 (Point Controller)</h3>
+        <div class="control-group">
+            <label>용기 (Courage) <span id="val-courage" class="val-display">0</span></label>
+            <input type="range" id="rng-courage" min="0" max="160" value="0">
+        </div>
+        <div class="control-group">
+            <label>지혜 (Wisdom) <span id="val-wisdom" class="val-display">0</span></label>
+            <input type="range" id="rng-wisdom" min="0" max="160" value="0">
+        </div>
+        <div class="control-group">
+            <label>친절 (Kindness) <span id="val-kindness" class="val-display">0</span></label>
+            <input type="range" id="rng-kindness" min="0" max="160" value="0">
+        </div>
+        <div class="control-group">
+            <label>성실 (Diligence) <span id="val-diligence" class="val-display">0</span></label>
+            <input type="range" id="rng-diligence" min="0" max="160" value="0">
+        </div>
+        <div class="control-group">
+            <label>평온 (Serenity) <span id="val-serenity" class="val-display">0</span></label>
+            <input type="range" id="rng-serenity" min="0" max="160" value="0">
+        </div>
+        <div style="font-size: 10px; color:#888; margin-top:5px;">* 슬라이더를 움직여 섬을 진화시키세요.</div>
+    </div>
+
+    <div id="cursor-tooltip">
+        <div class="tooltip-line"></div>
+        <div id="tooltip-kr">한글 이름</div>
+        <div id="tooltip-en">English Name</div>
+        <div class="tooltip-level" id="tooltip-lvl">Lv. 1</div>
+    </div>
+
+    <div id="hud-layer">
+        <div id="hud-line"></div>
+        <div id="hud-text-group">
+            <div id="hud-date">...</div>
+            <div id="hud-time">00:00</div>
+        </div>
+    </div>
+
     <div id="world-container">
         <div id="sky-bg"></div>
+        <div id="stars-container"></div>
+        <div id="cloud-floor"></div>
+        <canvas id="particle-canvas"></canvas>
 
         <div id="islands-container">
-            <div id="island-wisdom" class="island">
-                <img src="Images/island_wisdom.png" alt="지혜의 섬">
-                지혜
+            <div id="island-wisdom" class="scene-object island" 
+                 data-depth="0.02" data-base-x="42" data-base-y="43" 
+                 data-name-en="Wisdom" data-name-kr="지혜" data-type="wisdom" data-points="0">
+                <img id="img-wisdom" src="Images/island_wisdom_1.png" alt="지혜">
             </div>
-            <div id="island-serenity" class="island">
-                <img src="Images/island_serenity.png" alt="평온의 섬">
-                평온
+
+            <div id="island-serenity" class="scene-object island" 
+                 data-depth="0.02" data-base-x="58" data-base-y="43" 
+                 data-name-en="Serenity" data-name-kr="평온" data-type="serenity" data-points="0">
+                <img id="img-serenity" src="Images/island_serenity_1.png" alt="평온">
             </div>
-            <div id="island-courage" class="island">
-                <img src="Images/island_courage.png" alt="용기의 섬">
-                용기
+
+            <div id="island-courage" class="scene-object island" 
+                 data-depth="0.04" data-base-x="38" data-base-y="50" 
+                 data-name-en="Courage" data-name-kr="용기" data-type="courage" data-points="0">
+                <img id="img-courage" src="Images/island_courage_1.png" alt="용기">
             </div>
-            <div id="island-diligence" class="island">
-                <img src="Images/island_diligence.png" alt="성실의 섬">
-                성실
+
+            <div id="island-diligence" class="scene-object island" 
+                 data-depth="0.04" data-base-x="62" data-base-y="50" 
+                 data-name-en="Diligence" data-name-kr="성실" data-type="diligence" data-points="0">
+                <img id="img-diligence" src="Images/island_diligence_1.png" alt="성실">
             </div>
-            <div id="island-kindness" class="island">
-                <img src="Images/island_kindness.png" alt="친절의 섬">
-                친절
+
+            <div id="island-kindness" class="scene-object island" 
+                 data-depth="0.07" data-base-x="50" data-base-y="55" 
+                 data-name-en="Kindness" data-name-kr="친절" data-type="kindness" data-points="0">
+                <img id="img-kindness" src="Images/island_kindness_1.png" alt="친절">
             </div>
         </div>
-
-        <canvas id="cloud-canvas"></canvas>
     </div>
 
     <div id="ui-layer">
@@ -265,134 +425,368 @@
             <h1 class="main-title">글숲</h1>
             <h2 class="sub-title">글이 정원을 만들다</h2>
         </div>
-        
         <button id="enter-btn" class="enter-btn">정원 들어가기</button>
+    </div>
+    <button id="diary-open-btn">
+        WRITE DIARY
+        <div class="btn-line"></div>
+    </button>
+
+    <div id="diary-modal">
+        <div class="diary-window">
+            <span class="close-modal" id="diary-close-x">✕</span>
+            <div class="diary-header">
+                <div id="diary-date-display">2024. 05. 21. TUE</div>
+            </div>
+            
+            <textarea id="diary-textarea" placeholder="오늘의 일들을 기록하세요... (100자 ~ 400자)"></textarea>
+            
+            <div class="char-counter" id="char-count-info">0 / 400</div>
+            
+            <button id="diary-submit" class="diary-submit-btn" disabled>나무 심기 (기록)</button>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('cloud-canvas');
+        const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         const worldContainer = document.getElementById('world-container');
         const uiLayer = document.getElementById('ui-layer');
         const enterBtn = document.getElementById('enter-btn');
-        const islands = document.querySelectorAll('.island');
+        const islandElements = document.querySelectorAll('.island'); 
+        const cloudFloor = document.getElementById('cloud-floor');
+        const hudLayer = document.getElementById('hud-layer'); 
+        const islandsContainer = document.getElementById('islands-container');
+        const skyBg = document.getElementById('sky-bg');
+        const starsContainer = document.getElementById('stars-container');
+        const tooltip = document.getElementById('cursor-tooltip');
+        const tooltipEn = document.getElementById('tooltip-en');
+        const tooltipKr = document.getElementById('tooltip-kr');
+        const tooltipLvl = document.getElementById('tooltip-lvl'); // 레벨 툴팁
+        const devPanel = document.getElementById('dev-panel'); // 개발자 패널
 
         const audioBgm = document.getElementById('bgm');
         const audioHover = document.getElementById('sfx-hover');
         const audioClick = document.getElementById('sfx-click');
         const audioClear = document.getElementById('sfx-clear');
+        const hudDate = document.getElementById('hud-date');
+        const hudTime = document.getElementById('hud-time');
 
-        let width, height;
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        }
-        window.addEventListener('resize', resize);
-        resize();
+        // --- 요소 선택 ---
+        const diaryOpenBtn = document.getElementById('diary-open-btn');
+        const diaryModal = document.getElementById('diary-modal');
+        const diaryCloseX = document.getElementById('diary-close-x');
+        const diaryTextarea = document.getElementById('diary-textarea');
+        const charCounter = document.getElementById('char-count-info');
+        const diarySubmitBtn = document.getElementById('diary-submit');
+        const diaryDateDisplay = document.getElementById('diary-date-display');
 
-        // --- 구름 시스템 ---
-        const clouds = [];
-        const cloudCount = 180;
-        let isClearing = false;
-
-        class Cloud {
-            constructor() { this.reset(true); }
-            reset(initial = false) {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.z = Math.random(); 
-                this.size = 120 + this.z * 350; 
-                this.speed = 0.2 + this.z * 0.4; 
-                this.opacity = 0.4 + Math.random() * 0.5;
-                this.vx = this.speed;
-                this.explodeVx = 0;
-                this.explodeVy = 0;
-            }
-            update() {
-                if (!isClearing) {
-                    this.x += this.vx;
-                    if (this.x - this.size > width) {
-                        this.x = -this.size;
-                        this.y = Math.random() * height;
-                    }
-                } else {
-                    const centerX = width / 2;
-                    const centerY = height / 2;
-                    const dx = this.x - centerX;
-                    const dy = this.y - centerY;
-                    const angle = Math.atan2(dy, dx);
-                    
-                    const force = 6; 
-                    
-                    this.explodeVx += Math.cos(angle) * 0.5;
-                    this.explodeVy += Math.sin(angle) * 0.5;
-                    this.x += (Math.cos(angle) * force) + this.explodeVx;
-                    this.y += (Math.sin(angle) * force) + this.explodeVy;
-                    
-                    this.opacity -= 0.008; 
-                }
-            }
-            draw() {
-                if (this.opacity <= 0) return;
-                ctx.beginPath();
-                const gradient = ctx.createRadialGradient(
-                    this.x, this.y, this.size * 0.2, this.x, this.y, this.size
-                );
-                gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
-                gradient.addColorStop(0.5, `rgba(230, 240, 255, ${this.opacity * 0.7})`);
-                gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
-                ctx.fillStyle = gradient;
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function initClouds() {
-            for (let i = 0; i < cloudCount; i++) clouds.push(new Cloud());
-        }
-
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
-            clouds.forEach(cloud => { cloud.update(); cloud.draw(); });
-            requestAnimationFrame(animate);
-        }
-
-        // --- 인터랙션 ---
-        enterBtn.addEventListener('mouseenter', () => {
+        // --- 1. 버튼 호버 효과음 (기존 오디오 재활용) ---
+        diaryOpenBtn.addEventListener('mouseenter', () => {
             const sound = audioHover.cloneNode();
-            sound.volume = 0.5;
+            sound.volume = 0.4;
             sound.play().catch(()=>{});
         });
 
-        enterBtn.addEventListener('click', () => {
+        // --- 2. 모달 열기/닫기 ---
+        diaryOpenBtn.addEventListener('click', () => {
             audioClick.play();
-            audioBgm.volume = 0.4;
-            audioBgm.play();
-            audioClear.volume = 1.0;
-            audioClear.play();
-
-            // UI 퇴장
-            uiLayer.style.opacity = '0';
-            setTimeout(() => { uiLayer.style.display = 'none'; }, 1500);
-
-            // 상태 변경
-            isClearing = true;
-            
-            // 줌인 효과
-            worldContainer.style.transform = "scale(3.0)"; 
-
-            // 섬 동시 등장 (약 2초 후)
-            setTimeout(() => {
-                islands.forEach((island) => {
-                    island.classList.add('visible');
-                });
-            }, 2000); 
+            diaryModal.classList.add('active');
+            // 모달 열 때 현재 시간 업데이트
+            const now = new Date();
+            diaryDateDisplay.innerText = `${now.getFullYear()}. ${String(now.getMonth()+1).padStart(2,'0')}. ${String(now.getDate()).padStart(2,'0')}. ${['SUN','MON','TUE','WED','THU','FRI','SAT'][now.getDay()]}`;
         });
 
-        initClouds();
-        animate();
+        // --- 3. 글자 수 검증 로직 (100자 ~ 400자) ---
+        diaryTextarea.addEventListener('input', () => {
+            const len = diaryTextarea.value.length;
+            charCounter.innerText = `${len} / 400`;
+
+            // 기획서 밸런싱 기준: 최소 100자, 최대 400자 [cite: 3, 17]
+            if (len >= 100 && len <= 400) {
+                diarySubmitBtn.disabled = false;
+                charCounter.classList.remove('invalid');
+            } else {
+                diarySubmitBtn.disabled = true;
+                charCounter.classList.add('invalid');
+            }
+        });
+
+        // --- 4. 등록 버튼 클릭 (성장 시스템과 연동 준비) ---
+        diarySubmitBtn.addEventListener('click', () => {
+            audioClick.play();
+            alert("숲에 일기가 기록되었습니다. 덕목 포인트가 분석됩니다.");
+            // 여기에 나중에 OpenAI API 분석 및 포인트 분배 로직이 들어갑니다 [cite: 4, 5]
+            diaryModal.classList.remove('active');
+            diaryTextarea.value = '';
+        });
+
+        diaryCloseX.addEventListener('click', () => { 
+            // [중요] style.display = 'none' 대신 클래스 제거!
+            diaryModal.classList.remove('active'); 
+        });
+
+        diaryModal.addEventListener('click', (e) => {
+            if (e.target === diaryModal) {
+                diaryModal.classList.remove('active');
+            }
+        });
+
+        // [핵심] 포인트에 따른 레벨 계산 함수 
+        function calculateLevel(points) {
+            if (points <= 15) return 1;
+            if (points <= 30) return 2;
+            if (points <= 45) return 3;
+            if (points <= 60) return 4;
+            if (points <= 75) return 5;
+            if (points <= 90) return 6;
+            if (points <= 105) return 7;
+            if (points <= 125) return 8;
+            if (points <= 150) return 9;
+            return 10; // Max [cite: 43]
+        }
+
+        // [핵심] 섬 이미지 업데이트 함수
+        function updateIslandVisual(type, points) {
+            const level = calculateLevel(points);
+            const imgElement = document.getElementById(`img-${type}`);
+            const parentElement = document.getElementById(`island-${type}`);
+            
+            // 데이터 업데이트
+            parentElement.dataset.points = points;
+            
+            // 이미지 소스 교체 (파일명 규칙: island_type_level.png)
+            const newSrc = `Images/island_${type}_${level}.png`;
+            
+            // 현재 이미지와 다를 때만 교체 (불필요한 리로드 방지)
+            if (!imgElement.src.includes(newSrc)) {
+                // 페이드 효과를 위해 투명도 조절
+                imgElement.style.opacity = 0;
+                setTimeout(() => {
+                    imgElement.src = newSrc;
+                    imgElement.onload = () => {
+                        imgElement.style.opacity = 1;
+                    };
+                    // 이미지 로드 실패 시(파일 없을 때) 1레벨로 롤백하는 안전장치
+                    imgElement.onerror = () => {
+                        imgElement.src = `Images/island_${type}_1.png`;
+                        imgElement.style.opacity = 1;
+                    }
+                }, 300);
+            }
+        }
+
+        // [NEW] 슬라이더 이벤트 리스너 등록
+        const virtues = ['courage', 'wisdom', 'kindness', 'diligence', 'serenity'];
+        virtues.forEach(v => {
+            const slider = document.getElementById(`rng-${v}`);
+            const display = document.getElementById(`val-${v}`);
+            
+            slider.addEventListener('input', (e) => {
+                const points = parseInt(e.target.value);
+                display.innerText = points;
+                updateIslandVisual(v, points);
+            });
+        });
+
+
+        // ... (이하 기존 파티클, 시간, 파럴랙스 로직 유지) ...
+
+        function createStars() {
+            const count = 100;
+            for(let i=0; i<count; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const x = Math.random() * 100;
+                const y = Math.random() * 70; 
+                const size = Math.random() * 2 + 1;
+                const duration = Math.random() * 3 + 2; 
+                const opacity = Math.random() * 0.7 + 0.3;
+                star.style.left = `${x}%`; star.style.top = `${y}%`;
+                star.style.width = `${size}px`; star.style.height = `${size}px`;
+                star.style.setProperty('--duration', `${duration}s`);
+                star.style.setProperty('--opacity', opacity);
+                starsContainer.appendChild(star);
+            }
+        }
+        createStars();
+
+        function updateDayNightCycle() {
+            let now;
+            if (window.manualTime) { now = new Date(); now.setHours(window.manualTime.h, window.manualTime.m); } else { now = new Date(); }
+            const year = now.getFullYear(); const month = String(now.getMonth() + 1).padStart(2, '0'); const date = String(now.getDate()).padStart(2, '0');
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']; const dayName = days[now.getDay()];
+            hudDate.innerText = `${year}. ${month}. ${date}. ${dayName}`;
+            const hours = String(now.getHours()).padStart(2, '0'); const minutes = String(now.getMinutes()).padStart(2, '0');
+            hudTime.innerText = `${hours}:${minutes}`;
+            const h = now.getHours();
+            let skyGradient = ''; let starsOpacity = 0;
+            if (h >= 5 && h < 7) { skyGradient = 'linear-gradient(135deg, #2c3e50 0%, #4ca1af 60%, #ff9966 100%)'; starsOpacity = 0; }
+            else if (h >= 7 && h < 17) { skyGradient = 'linear-gradient(135deg, #2980b9 0%, #6dd5fa 50%, #ffffff 100%)'; starsOpacity = 0; }
+            else if (h >= 17 && h < 19) { skyGradient = 'linear-gradient(135deg, #3e5151 0%, #decba4 50%, #ff7e5f 100%)'; starsOpacity = 0.3; }
+            else { skyGradient = 'linear-gradient(160deg, #0f2027 0%, #203a43 60%, #2c5364 100%)'; starsOpacity = 1; }
+            skyBg.style.background = skyGradient; starsContainer.style.opacity = starsOpacity;
+        }
+        setInterval(updateDayNightCycle, 1000); updateDayNightCycle(); 
+
+        let width, height;
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.addEventListener('resize', resize); resize();
+
+        let mouseX = 0; let mouseY = 0; let targetX = 0; let targetY = 0;
+        const parallaxSensitivity = 0.2; 
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX - width / 2) / (width / 2);
+            mouseY = (e.clientY - height / 2) / (height / 2);
+            tooltip.style.left = e.clientX + 'px'; tooltip.style.top = e.clientY + 'px';
+        });
+
+        function updateParallax() {
+            targetX += (mouseX - targetX) * 0.05; targetY += (mouseY - targetY) * 0.05;
+            const allObjects = document.querySelectorAll('.scene-object');
+            allObjects.forEach(obj => {
+                const depth = parseFloat(obj.dataset.depth); const baseX = parseFloat(obj.dataset.baseX); const baseY = parseFloat(obj.dataset.baseY);
+                const moveX = targetX * depth * width * -1 * parallaxSensitivity; const moveY = targetY * depth * height * -1 * parallaxSensitivity;
+                obj.style.left = `${baseX}%`; obj.style.top = `${baseY}%`; obj.style.transform = `translate(calc(-50% + ${moveX}px), ${moveY}px)`;
+            });
+            requestAnimationFrame(updateParallax);
+        }
+
+        function createShards() {
+            const shardCount = 20;
+            for(let i=0; i<shardCount; i++) {
+                const shard = document.createElement('div'); shard.classList.add('shard', 'scene-object'); 
+                const size = 5 + Math.random() * 20; shard.style.width = `${size}px`; shard.style.height = `${size}px`;
+                shard.dataset.baseX = Math.random() * 100; shard.dataset.baseY = Math.random() * 90; shard.dataset.depth = (Math.random() * 0.1).toFixed(3); 
+                const p1 = Math.floor(Math.random() * 100); const p2 = Math.floor(Math.random() * 100); const p3 = Math.floor(Math.random() * 100);
+                shard.style.clipPath = `polygon(${p1}% 0%, 100% ${p2}%, ${p3}% 100%)`; shard.style.animationDelay = `${Math.random() * 5}s`;
+                islandsContainer.appendChild(shard);
+            }
+        }
+        createShards(); 
+
+        islandElements.forEach(island => {
+            island.addEventListener('mouseenter', () => {
+                if(island.classList.contains('visible')) {
+                    const sound = audioHover.cloneNode(); sound.volume = 0.6; sound.play().catch(()=>{});
+                    tooltipEn.innerText = island.dataset.nameEn;
+                    tooltipKr.innerText = island.dataset.nameKr;
+                    
+                    // 툴팁에 현재 레벨 표시 추가
+                    const points = parseInt(island.dataset.points);
+                    const lvl = calculateLevel(points);
+                    tooltipLvl.innerText = `Lv. ${lvl} (${points}pts)`;
+                    
+                    tooltip.classList.add('active');
+                }
+            });
+            island.addEventListener('mouseleave', () => { tooltip.classList.remove('active'); });
+        });
+
+        let particles = []; const particleCount = 200; let isClearing = false; let isGardenMode = false;
+        class Particle {
+            constructor(isIntro = true) { this.isIntro = isIntro; this.markedForDeletion = false; this.reset(true); }
+            reset(initial = false) {
+                if (this.isIntro) {
+                    this.x = Math.random() * width; this.y = Math.random() * height; this.z = Math.random(); 
+                    this.size = 100 + this.z * 300; this.speed = 0.5 + this.z * 0.5; this.opacity = 0.4 + Math.random() * 0.5;
+                    this.vx = this.speed; this.vy = 0; this.type = 'cloud';
+                } else {
+                    this.x = width + 50; const rand = Math.random();
+                    if (rand < 0.8) { this.y = (height * 0.7) + Math.random() * (height * 0.3); } else { this.y = Math.random() * (height * 0.5); }
+                    const typeRand = Math.random();
+                    if (typeRand > 0.8) { this.type = 'mini-cloud'; this.size = 30 + Math.random() * 60; this.speed = 0.5 + Math.random() * 0.5; this.opacity = 0.15 + Math.random() * 0.2; } 
+                    else { this.type = 'wind'; this.size = 1 + Math.random() * 2; this.speed = 2.5 + Math.random() * 2; this.opacity = 0.05 + Math.random() * 0.1; }
+                    this.vx = -this.speed; this.vy = (Math.random() - 0.5) * 0.2;
+                }
+                this.explodeVx = 0; this.explodeVy = 0;
+            }
+            update() {
+                if (this.isIntro) {
+                    if (!isClearing) { this.x += this.vx; if (this.x - this.size > width) { this.x = -this.size; this.y = Math.random() * height; } } 
+                    else {
+                        const centerX = width / 2; const centerY = height / 2; const dx = this.x - centerX; const dy = this.y - centerY;
+                        const angle = Math.atan2(dy, dx); const force = 8; 
+                        this.explodeVx += Math.cos(angle) * 0.8; this.explodeVy += Math.sin(angle) * 0.8;
+                        this.x += (Math.cos(angle) * force) + this.explodeVx; this.y += (Math.sin(angle) * force) + this.explodeVy;
+                        this.opacity -= 0.02; if (this.opacity <= 0) { this.markedForDeletion = true; }
+                    }
+                } else {
+                    this.x += this.vx; this.y += this.vy; if (this.x < -200) { this.markedForDeletion = true; }
+                }
+            }
+            draw() {
+                if (this.opacity <= 0) return; ctx.beginPath();
+                if (this.type === 'cloud' || this.type === 'mini-cloud') {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, this.size * 0.1, this.x, this.y, this.size);
+                    gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`); gradient.addColorStop(0.6, `rgba(240, 248, 255, ${this.opacity * 0.5})`); gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+                    ctx.fillStyle = gradient; ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+                } else if (this.type === 'wind') {
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`; ctx.lineWidth = 1;
+                    ctx.moveTo(this.x, this.y); ctx.lineTo(this.x + this.size * 15, this.y); ctx.stroke();
+                }
+            }
+        }
+
+        function initIntroParticles() { for (let i = 0; i < particleCount; i++) particles.push(new Particle(true)); }
+        function spawnGardenParticles() { if (!isGardenMode) return; if (particles.length < 100) { particles.push(new Particle(false)); } }
+        function animateParticles() {
+            ctx.clearRect(0, 0, width, height); for (let i = 0; i < particles.length; i++) { particles[i].update(); particles[i].draw(); }
+            particles = particles.filter(p => !p.markedForDeletion);
+            if (isGardenMode) { spawnGardenParticles(); }
+            requestAnimationFrame(animateParticles);
+        }
+
+        enterBtn.addEventListener('mouseenter', () => { const sound = audioHover.cloneNode(); sound.volume = 0.5; sound.play().catch(()=>{}); });
+        enterBtn.addEventListener('click', () => {
+            // 1. 즉시 실행: 클릭 효과음, 인트로 UI 페이드아웃, 월드 확대(진입) 애니메이션 시작
+            audioClick.play();
+            uiLayer.style.opacity = '0';
+            isClearing = true;
+            worldContainer.style.transform = "scale(2.0)"; 
+
+            // 2. 1초 뒤: 본격적으로 정원의 요소들을 화면에 배치
+            setTimeout(() => {
+                isGardenMode = true;
+
+                // 모든 섬과 장식 파편들 표시
+                const allSceneObjects = document.querySelectorAll('.scene-object');
+                allSceneObjects.forEach((obj) => { 
+                    obj.classList.add('visible'); 
+                });
+
+                // [중요] 일기 쓰기 버튼 등장
+                if (diaryOpenBtn) {
+                    diaryOpenBtn.classList.add('visible');
+                }
+
+                // 구름 바닥, HUD, 개발자 패널(슬라이더) 표시
+                cloudFloor.style.opacity = '1'; 
+                hudLayer.style.opacity = '1'; 
+                devPanel.style.display = 'block'; // 패널 등장 (CSS에서 위치는 왼쪽으로!)
+
+                // 시야 시차(Parallax) 효과 시작
+                updateParallax();
+            }, 1000);
+
+            // 3. 1.5초 뒤: 인트로 UI 레이어를 완전히 제거해서 클릭 방해를 막음
+            setTimeout(() => { 
+                uiLayer.style.display = 'none'; 
+            }, 1500);
+
+            // 4. 효과음 및 배경음악 타이밍 조절
+            setTimeout(() => { 
+                audioClear.volume = 1.0; 
+                audioClear.play(); 
+            }, 2500);
+
+            setTimeout(() => { 
+                audioBgm.volume = 0.4; 
+                audioBgm.play(); 
+            }, 8000);
+        });
+
+        initIntroParticles(); animateParticles();
     </script>
 </body>
 </html>
