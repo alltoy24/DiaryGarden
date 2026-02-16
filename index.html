@@ -763,7 +763,6 @@
                 // 구름 바닥, HUD, 개발자 패널(슬라이더) 표시
                 cloudFloor.style.opacity = '1'; 
                 hudLayer.style.opacity = '1'; 
-                devPanel.style.display = 'block'; // 패널 등장 (CSS에서 위치는 왼쪽으로!)
 
                 // 시야 시차(Parallax) 효과 시작
                 updateParallax();
@@ -787,6 +786,19 @@
         });
 
         initIntroParticles(); animateParticles();
+        // --- [추가] F3 키로 정원사 모드 토글 ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'F3') {
+                e.preventDefault(); // 브라우저 자체 '찾기' 창이 뜨는 걸 막음
+                
+                // 현재 상태가 block이면 숨기고, 아니면 보여줌
+                if (devPanel.style.display === 'block') {
+                    devPanel.style.display = 'none';
+                } else {
+                    devPanel.style.display = 'block';
+                }
+            }
+        });
     </script>
 </body>
 </html>
