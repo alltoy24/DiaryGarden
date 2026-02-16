@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글숲 - 글이 정원을 만들다</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&family=Noto+Serif+KR:wght@300;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        /* 월드 컨테이너: 3배 줌인을 견디도록 설정 */
+        #world-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 4s cubic-bezier(0.25, 1, 0.5, 1);
+            transform-origin: center center; /* 정확히 중앙으로 파고듦 */
+        }
+
+        /* 하늘 배경 */
+        #sky-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #2b32b2, #1488cc, #e0f7fa);
+            z-index: 1;
+        }
+
+        /* 구름 캔버스 */
+        #cloud-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10; 
+            pointer-events: none;
+        }
+
+        /* UI 레이어 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            padding: 80px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; 
+            align-items: flex-start;
+            transition: opacity 1.5s ease-out;
+            background: linear-gradient(to right, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0) 80%);
+        }
+
+        .title-group {
+            margin-bottom: 60px;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        h1.main-title {
+            font-family: 'Nanum Brush Script', cursive; 
+            font-size: 7rem; 
+            font-weight: 400;
+            letter-spacing: 0.1rem;
+            margin-bottom: 10px;
+            line-height: 1.1;
+        }
+
+        h2.sub-title {
+            font-family: 'Noto Serif KR', serif; 
+            font-size: 1.5rem;
+            font-weight: 300;
+            opacity: 0.9;
+            letter-spacing: 0.3rem;
+            margin-left: 10px; 
+        }
+
+        .enter-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-family: 'Noto Serif KR', serif;
+            font-size: 1.6rem;
+            cursor: pointer;
+            padding-bottom: 5px;
+            margin-left: 10px;
+            position: relative;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .enter-btn:hover {
+            opacity: 1;
+        }
+
+        .enter-btn::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 1px;
+            background-color: white;
+            transform: scaleX(0); 
+            transform-origin: left;
+            transition: transform 0.4s ease-out;
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        .enter-btn:hover::after {
+            transform: scaleX(1); 
+        }
+
+        /* --- 섬 (Islands) 스타일 [핵심 수정] --- */
+        #islands-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .island {
+            position: absolute;
+            /* [중요] 초기 크기를 작게 설정 (80px). 
+               나중에 3배 줌인 되면 240px로 보임. */
+            width: 80px; 
+            height: auto;
+            opacity: 0; /* 초기 투명 */
+            
+            /* 등장 애니메이션 */
+            transform: translateY(20px); 
+            transition: opacity 2.5s ease-in-out, transform 2.5s ease-out; /* 페이드인 시간 늘림 */
+            
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            color: #fff;
+            /* 텍스트도 줌인 되면 커지므로 초기엔 작게 설정 */
+            font-size: 0.5rem; 
+            font-family: 'Noto Serif KR', serif;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .island img {
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.4));
+            margin-bottom: 5px;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .island:nth-child(1) img { animation-delay: 0s; }
+        .island:nth-child(2) img { animation-delay: 1s; }
+        .island:nth-child(3) img { animation-delay: 2s; }
+        .island:nth-child(4) img { animation-delay: 3s; }
+        .island:nth-child(5) img { animation-delay: 4s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); } /* 움직임 폭도 줌인 고려해서 줄임 */
+        }
+
+        /* --- [핵심] 섬 배치 좌표 수정 --- 
+           화면 중앙(50%, 50%)을 기준으로 아주 가깝게 배치합니다.
+           3배 줌인이 되면 이 간격들이 3배로 벌어지며 화면을 꽉 채우게 됩니다.
+        */
+        
+        /* 1. 친절 (중앙 하단) */
+        /* top 58% -> 줌인 시 바닥 쪽으로 내려감 */
+        #island-kindness { top: 58%; left: 50%; transform: translate(-50%, 20px); z-index: 6; }
+        
+        /* 2. 용기 (왼쪽 중간) */
+        /* left 40% -> 줌인 시 화면 왼쪽으로 이동 */
+        #island-courage { top: 50%; left: 40%; transform: translate(-50%, 20px); }
+        
+        /* 3. 성실 (오른쪽 중간) */
+        /* left 60% -> 줌인 시 화면 오른쪽으로 이동 */
+        #island-diligence { top: 50%; left: 60%; transform: translate(-50%, 20px); }
+        
+        /* 4. 지혜 (왼쪽 상단) */
+        /* top 42% -> 줌인 시 위쪽으로 올라감 */
+        #island-wisdom { top: 42%; left: 42%; transform: translate(-50%, 20px); z-index: 4; }
+        
+        /* 5. 평온 (오른쪽 상단) */
+        #island-serenity { top: 42%; left: 58%; transform: translate(-50%, 20px); z-index: 4; }
+
+
+        /* 등장 시 스타일 (동시 등장) */
+        /* translate(-50%)를 유지하면서 Y축만 0으로 만드는 테크닉 */
+        .island.visible { opacity: 1; }
+        
+        #island-kindness.visible { transform: translate(-50%, 0); }
+        #island-courage.visible { transform: translate(-50%, 0); }
+        #island-diligence.visible { transform: translate(-50%, 0); }
+        #island-wisdom.visible { transform: translate(-50%, 0); }
+        #island-serenity.visible { transform: translate(-50%, 0); }
+
+    </style>
+</head>
+<body>
+
+    <audio id="bgm" src="SFX/bgm.mp3" loop></audio>
+    <audio id="sfx-hover" src="SFX/hover.mp3"></audio>
+    <audio id="sfx-click" src="SFX/click.mp3"></audio>
+    <audio id="sfx-clear" src="SFX/cloud_clear.mp3"></audio>
+
+    <div id="world-container">
+        <div id="sky-bg"></div>
+
+        <div id="islands-container">
+            <div id="island-wisdom" class="island">
+                <img src="Images/island_wisdom.png" alt="지혜의 섬">
+                지혜
+            </div>
+            <div id="island-serenity" class="island">
+                <img src="Images/island_serenity.png" alt="평온의 섬">
+                평온
+            </div>
+            <div id="island-courage" class="island">
+                <img src="Images/island_courage.png" alt="용기의 섬">
+                용기
+            </div>
+            <div id="island-diligence" class="island">
+                <img src="Images/island_diligence.png" alt="성실의 섬">
+                성실
+            </div>
+            <div id="island-kindness" class="island">
+                <img src="Images/island_kindness.png" alt="친절의 섬">
+                친절
+            </div>
+        </div>
+
+        <canvas id="cloud-canvas"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        <div class="title-group">
+            <h1 class="main-title">글숲</h1>
+            <h2 class="sub-title">글이 정원을 만들다</h2>
+        </div>
+        
+        <button id="enter-btn" class="enter-btn">정원 들어가기</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('cloud-canvas');
+        const ctx = canvas.getContext('2d');
+        const worldContainer = document.getElementById('world-container');
+        const uiLayer = document.getElementById('ui-layer');
+        const enterBtn = document.getElementById('enter-btn');
+        const islands = document.querySelectorAll('.island');
+
+        const audioBgm = document.getElementById('bgm');
+        const audioHover = document.getElementById('sfx-hover');
+        const audioClick = document.getElementById('sfx-click');
+        const audioClear = document.getElementById('sfx-clear');
+
+        let width, height;
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // --- 구름 시스템 ---
+        const clouds = [];
+        const cloudCount = 180;
+        let isClearing = false;
+
+        class Cloud {
+            constructor() { this.reset(true); }
+            reset(initial = false) {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.z = Math.random(); 
+                this.size = 120 + this.z * 350; 
+                this.speed = 0.2 + this.z * 0.4; 
+                this.opacity = 0.4 + Math.random() * 0.5;
+                this.vx = this.speed;
+                this.explodeVx = 0;
+                this.explodeVy = 0;
+            }
+            update() {
+                if (!isClearing) {
+                    this.x += this.vx;
+                    if (this.x - this.size > width) {
+                        this.x = -this.size;
+                        this.y = Math.random() * height;
+                    }
+                } else {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const dx = this.x - centerX;
+                    const dy = this.y - centerY;
+                    const angle = Math.atan2(dy, dx);
+                    
+                    const force = 6; 
+                    
+                    this.explodeVx += Math.cos(angle) * 0.5;
+                    this.explodeVy += Math.sin(angle) * 0.5;
+                    this.x += (Math.cos(angle) * force) + this.explodeVx;
+                    this.y += (Math.sin(angle) * force) + this.explodeVy;
+                    
+                    this.opacity -= 0.008; 
+                }
+            }
+            draw() {
+                if (this.opacity <= 0) return;
+                ctx.beginPath();
+                const gradient = ctx.createRadialGradient(
+                    this.x, this.y, this.size * 0.2, this.x, this.y, this.size
+                );
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity})`);
+                gradient.addColorStop(0.5, `rgba(230, 240, 255, ${this.opacity * 0.7})`);
+                gradient.addColorStop(1, `rgba(255, 255, 255, 0)`);
+                ctx.fillStyle = gradient;
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initClouds() {
+            for (let i = 0; i < cloudCount; i++) clouds.push(new Cloud());
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            clouds.forEach(cloud => { cloud.update(); cloud.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        // --- 인터랙션 ---
+        enterBtn.addEventListener('mouseenter', () => {
+            const sound = audioHover.cloneNode();
+            sound.volume = 0.5;
+            sound.play().catch(()=>{});
+        });
+
+        enterBtn.addEventListener('click', () => {
+            audioClick.play();
+            audioBgm.volume = 0.4;
+            audioBgm.play();
+            audioClear.volume = 1.0;
+            audioClear.play();
+
+            // UI 퇴장
+            uiLayer.style.opacity = '0';
+            setTimeout(() => { uiLayer.style.display = 'none'; }, 1500);
+
+            // 상태 변경
+            isClearing = true;
+            
+            // 줌인 효과
+            worldContainer.style.transform = "scale(3.0)"; 
+
+            // 섬 동시 등장 (약 2초 후)
+            setTimeout(() => {
+                islands.forEach((island) => {
+                    island.classList.add('visible');
+                });
+            }, 2000); 
+        });
+
+        initClouds();
+        animate();
+    </script>
+</body>
+</html>
