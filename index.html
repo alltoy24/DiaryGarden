@@ -484,7 +484,7 @@
         // --- 1. 버튼 호버 효과음 (기존 오디오 재활용) ---
         diaryOpenBtn.addEventListener('mouseenter', () => {
             const sound = audioHover.cloneNode();
-            sound.volume = 0.4;
+            sound.volume = 0.05;
             sound.play().catch(()=>{});
         });
 
@@ -669,7 +669,7 @@
         islandElements.forEach(island => {
             island.addEventListener('mouseenter', () => {
                 if(island.classList.contains('visible')) {
-                    const sound = audioHover.cloneNode(); sound.volume = 0.6; sound.play().catch(()=>{});
+                    const sound = audioHover.cloneNode(); sound.volume = 0.05; sound.play().catch(()=>{});
                     tooltipEn.innerText = island.dataset.nameEn;
                     tooltipKr.innerText = island.dataset.nameKr;
                     
@@ -738,13 +738,13 @@
             requestAnimationFrame(animateParticles);
         }
 
-        enterBtn.addEventListener('mouseenter', () => { const sound = audioHover.cloneNode(); sound.volume = 0.5; sound.play().catch(()=>{}); });
+        enterBtn.addEventListener('mouseenter', () => { const sound = audioHover.cloneNode(); sound.volume = 0.05; sound.play().catch(()=>{}); });
         enterBtn.addEventListener('click', () => {
             // [즉시 실행] 효과음, UI 페이드아웃, 월드 확대
             audioClick.play();
             
             // [수정] 클릭하자마자 구름 걷히는 소리와 바람 소리 즉시 재생
-            audioClear.volume = 1.0;
+            audioClear.volume = 0.2;
             audioClear.play();
             
             audioAmbiance.volume = 0.3; // 바람 소리는 은은하게
