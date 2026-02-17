@@ -865,6 +865,127 @@
             .panel-header h2 { font-size: 2rem; }
             #profile-nickname { font-size: 1.5rem; }
         }
+
+        #settings-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px);
+            z-index: 9600; display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: all 0.3s ease;
+        }
+        #settings-modal.active { opacity: 1; visibility: visible; }
+
+        .settings-window {
+            width: 750px; /* PC: 넓은 가로형 */
+            background: #151515; border: 1px solid #d4af37;
+            padding: 40px 50px; position: relative; box-shadow: 0 0 60px rgba(0,0,0,0.9);
+            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column;
+            max-height: 90vh; /* 화면보다 크면 스크롤 */
+        }
+        #settings-modal.active .settings-window { transform: scale(1); }
+
+        .settings-header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
+        .settings-label { font-family: 'Cinzel', serif; color: #666; letter-spacing: 0.2rem; font-size: 0.8rem; }
+        .settings-header h2 { font-family: 'Nanum Myeongjo', serif; color: #fff; margin-top: 10px; font-size: 1.8rem; }
+
+        /* [핵심] 2x2 그리드 레이아웃 (PC) */
+        .settings-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 정확히 반반씩 2열 */
+            column-gap: 50px; /* 좌우 간격 */
+            row-gap: 30px;    /* 상하 간격 */
+            overflow-y: auto; 
+            padding-right: 10px;
+        }
+        
+        /* 스크롤바 커스텀 */
+        .settings-content::-webkit-scrollbar { width: 4px; }
+        .settings-content::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .setting-group { margin-bottom: 0; }
+        
+        .setting-group h3 { 
+            font-family: 'Nanum Myeongjo', serif; color: #d4af37; font-size: 1.1rem; 
+            margin-bottom: 15px; border-left: 3px solid #d4af37; padding-left: 10px;
+        }
+
+        /* 슬라이더 및 컨트롤 스타일 */
+        .slider-container { margin-bottom: 15px; }
+        .slider-label { display: flex; justify-content: space-between; color: #aaa; font-family: 'Nanum Myeongjo'; font-size: 0.85rem; margin-bottom: 5px; }
+        .custom-range { -webkit-appearance: none; width: 100%; height: 4px; background: #333; border-radius: 2px; outline: none; }
+        .custom-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #d4af37; cursor: pointer; transition: transform 0.2s; }
+        .custom-range::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 0 10px #d4af37; }
+
+        /* 토글 및 버튼 그룹 스타일 */
+        .toggle-container { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .toggle-label { color: #aaa; font-family: 'Nanum Myeongjo'; font-size: 0.85rem; }
+        .switch { position: relative; display: inline-block; width: 36px; height: 18px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: #888; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: rgba(212, 175, 55, 0.3); border: 1px solid #d4af37; }
+        input:checked + .slider:before { transform: translateX(18px); background-color: #d4af37; box-shadow: 0 0 10px #d4af37; }
+
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .control-label { color: #aaa; font-family: 'Nanum Myeongjo'; font-size: 0.85rem; }
+        .btn-group { display: flex; gap: 5px; }
+        .opt-btn { background: #222; border: 1px solid #444; color: #888; padding: 4px 10px; cursor: pointer; border-radius: 4px; font-family: 'Nanum Myeongjo'; font-size: 0.75rem; transition: all 0.3s ease; }
+        .opt-btn:hover { background: #333; color: #fff; }
+        .opt-btn.active { background: rgba(212, 175, 55, 0.2); border-color: #d4af37; color: #d4af37; font-weight: bold; }
+
+        /* =========================================
+           📱 [필수] 모바일 반응형 (CSS 맨 아래에 위치!)
+           ========================================= */
+        @media screen and (max-width: 768px) {
+            
+            .main-title { font-size: 3rem; letter-spacing: 0.3rem; }
+            .sub-title { font-size: 0.8rem; letter-spacing: 0.2rem; margin-bottom: 30px; }
+            .main-content-box { margin-bottom: 15vh; }
+
+            /* 모든 모달 창 너비 최적화 */
+            .diary-window, .result-window, .detail-window, .profile-window, .settings-window {
+                width: 90% !important; max-height: 85vh; padding: 30px 20px;
+            }
+            #diary-textarea { height: 180px; }
+
+            #main-menu-sidebar { width: 100%; padding: 100px 30px; background: linear-gradient(to right, rgba(5,7,10,0.9), #05070a); }
+            #island-info-panel { width: 100%; right: -100%; border-left: none; }
+            #island-info-panel.active { right: 0; }
+
+            #menu-toggle-btn { top: 20px; right: 20px; transform: scale(0.9); }
+            #diary-open-btn { bottom: 30px; right: 20px; font-size: 0.9rem; }
+            .minimal-logout-btn { bottom: 20px; font-size: 0.6rem; }
+
+            #tooltip-kr { font-size: 1.2rem; }
+            .panel-header h2 { font-size: 2rem; }
+            #profile-nickname { font-size: 1.5rem; }
+
+            /* [핵심 Fix] 모바일에서는 설정창 다시 1열로 복귀 */
+            .settings-content {
+                grid-template-columns: 1fr !important; /* 강제 1열 */
+                gap: 30px;
+            }
+        }
+        /* 1. 작게 (Small) */
+        body.fs-small #diary-textarea,  /* 여기가 수정됨 (. -> #) */
+        body.fs-small .detail-text,
+        body.fs-small .result-content { 
+            font-size: 1.2rem !important; line-height: 1.6; 
+        }
+
+        /* 2. 보통 (Medium) */
+        body.fs-medium #diary-textarea, /* 여기가 수정됨 (. -> #) */
+        body.fs-medium .detail-text,
+        body.fs-medium .result-content { 
+            font-size: 1.5rem !important; line-height: 1.8; 
+        }
+
+        /* 3. 크게 (Large) */
+        body.fs-large #diary-textarea,  /* 여기가 수정됨 (. -> #) */
+        body.fs-large .detail-text,
+        body.fs-large .result-content { 
+            font-size: 2rem !important; line-height: 2.0; 
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -981,6 +1102,87 @@
             <p>이 정원의 주인인 당신의 이름은 무엇인가요? (신중하게 결정해주세요, 변경은 불가능합니다)</p>
             <input type="text" id="nickname-input" placeholder="최대 8글자" maxlength="8">
             <button id="nickname-submit-btn">정원사에게 이름 알려주기</button>
+        </div>
+    </div>
+
+    <div id="settings-modal">
+        <div class="settings-window">
+            <span class="close-modal" id="settings-close-x">✕</span>
+            
+            <div class="settings-header">
+                <span class="settings-label">SYSTEM CONFIG</span>
+                <h2>정원 설정</h2>
+            </div>
+
+            <div class="settings-content">
+                
+                <div class="setting-group">
+                    <h3>🔊 사운드 (Audio)</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>배경음 (Wind & Nature)</span>
+                            <span id="disp-bgm">30%</span>
+                        </div>
+                        <input type="range" id="vol-bgm" class="custom-range" min="0" max="1" step="0.05" value="0.3">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>효과음 (SFX)</span>
+                            <span id="disp-sfx">50%</span>
+                        </div>
+                        <input type="range" id="vol-sfx" class="custom-range" min="0" max="1" step="0.05" value="0.5">
+                    </div>
+                </div> <div class="setting-group">
+                    <h3>✨ 그래픽 (Graphics)</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>입자 효과 (Particles)</span>
+                            <span id="disp-particle">많음 (High)</span>
+                        </div>
+                        <input type="range" id="opt-particle" class="custom-range" min="0" max="2" step="1" value="2">
+                    </div>
+                    <div class="toggle-container">
+                        <span class="toggle-label">시점 흔들림 효과 (Parallax)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="opt-parallax" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>🎨 화면 (Display)</h3>
+                    <div class="control-row">
+                        <span class="control-label">글자 크기 (Font Size)</span>
+                        <div class="btn-group" id="font-group">
+                            <button class="opt-btn" data-val="small">작게</button>
+                            <button class="opt-btn active" data-val="medium">보통</button>
+                            <button class="opt-btn" data-val="large">크게</button>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <span class="control-label">시간 테마 (Time Theme)</span>
+                        <div class="btn-group" id="theme-group">
+                            <button class="opt-btn active" data-val="auto">자동</button>
+                            <button class="opt-btn" data-val="day">항상 낮</button>
+                            <button class="opt-btn" data-val="night">항상 밤</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>💾 데이터 (Data)</h3>
+                    <div class="control-row">
+                        <span class="control-label">일기 백업 (Backup)</span>
+                        <button id="btn-backup" class="opt-btn" style="width: auto; padding: 8px 15px;">
+                            텍스트로 내보내기 (.txt)
+                        </button>
+                    </div>
+                    <p style="color: #666; font-family: 'Nanum Myeongjo'; font-size: 0.8rem; margin-top: 5px;">
+                        * 작성한 모든 일기와 정원사의 답장을 파일로 저장합니다.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1177,12 +1379,276 @@
         const resultCloseBtn = document.getElementById('result-close-btn');
         const audioResult = document.getElementById('sfx-result');
         const audioHit = document.getElementById('sfx-hit');
+        let isNightTime = false;
+        let globalSFXVolume = 0.2; // [NEW] 효과음(SFX) 전체 볼륨 제어용 변수
+        let globalTheme = 'auto';
+        let particleDensity = 2; // 0: 끔, 1: 보통, 2: 많음
+        let isParallaxOn = true; // 시점 흔들림 켜짐/꺼짐
         let cachedDiaries = []; // 🧺 일기 데이터를 미리 담아둘 바구니
+        let shootingStars = [];
+
+        let width, height;
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.addEventListener('resize', resize); resize();
 
         profileLink.addEventListener('click', (e) => {
             e.preventDefault(); // # 이동 방지
             audioClick.play();
             openProfileModal();
+        });
+
+        class ShootingStar {
+            constructor() {
+                // 처음엔 화면 밖 먼 곳(대기실)에 숨겨둠
+                this.x = -5000;
+                this.y = -5000;
+                this.len = 0;
+                this.speed = 0;
+                this.size = 0;
+                this.angle = 45 * (Math.PI / 180);
+            }
+
+            // 발사! (위치와 속도를 랜덤으로 재설정)
+            reset() {
+                // X좌표: 화면 왼쪽(-width)부터 오른쪽(width*2)까지 넓게 잡아야 
+                // 45도로 떨어질 때 화면 전체를 커버할 수 있음
+                this.x = (Math.random() * width * 1.5) - (width * 0.25);
+                
+                // Y좌표: 화면 바로 위
+                this.y = -100;
+                
+                this.len = Math.random() * 80 + 10;  // 꼬리 길이
+                this.speed = Math.random() * 10 + 6; // 속도
+                this.size = Math.random() * 1 + 0.1; // 머리 크기
+            }
+
+            update() {
+                // 대기 중인 별은 움직이지 않음
+                if (this.x === -5000) return;
+
+                this.x += this.speed * Math.cos(this.angle);
+                this.y += this.speed * Math.sin(this.angle);
+
+                // 화면 밖으로 완전히 벗어나면? -> 다시 대기실로 보냄
+                if (this.x > width + 200 || this.y > height + 200) {
+                    this.x = -5000; 
+                    this.y = -5000;
+                }
+            }
+
+            draw() {
+                // 밤이 아니거나 대기 중이면 그리지 않음
+                if (!isNightTime || this.x === -5000) return; 
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                const gradient = ctx.createLinearGradient(0, 0, -this.len, 0);
+                gradient.addColorStop(0, "rgba(255, 255, 255, 1)"); 
+                gradient.addColorStop(0.1, "rgba(212, 175, 55, 0.8)"); 
+                gradient.addColorStop(1, "rgba(255, 255, 255, 0)"); 
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-this.len, -1);
+                ctx.lineTo(-this.len, 1);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // 유성 3개 생성 (3개가 번갈아가며 떨어짐)
+        for (let i = 0; i < 3; i++) {
+            shootingStars.push(new ShootingStar());
+        }
+
+        const fontBtns = document.querySelectorAll('#font-group .opt-btn');
+        fontBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // 1. 버튼 스타일 초기화 및 활성화
+                fontBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                // 2. 바디 클래스 변경 (fs-small, fs-medium, fs-large)
+                const val = e.target.dataset.val;
+                document.body.classList.remove('fs-small', 'fs-medium', 'fs-large'); // 기존 거 삭제
+                document.body.classList.add(`fs-${val}`); // 새 거 추가
+                
+                audioClick.play(); // 딸깍
+            });
+        });
+
+        const btnBackup = document.getElementById('btn-backup');
+
+        btnBackup.addEventListener('click', () => {
+            audioClick.play(); // 딸깍
+
+            // 1. 데이터 확인
+            if (!cachedDiaries || cachedDiaries.length === 0) {
+                alert("아직 백업할 일기가 없습니다. 정원에 이야기를 심어보세요! 🌱");
+                return;
+            }
+
+            if (!confirm(`총 ${cachedDiaries.length}편의 일기를 저장하시겠습니까?`)) return;
+
+            // 2. 텍스트 내용 만들기
+            let textContent = "========== [글숲] 나의 정원 기록 ==========\n\n";
+            const now = new Date();
+            textContent += `백업 일시: ${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}\n`;
+            textContent += `작성자: ${document.getElementById('profile-nickname').innerText}\n\n`;
+            textContent += "===========================================\n\n";
+
+            cachedDiaries.forEach((diary, index) => {
+                // 날짜 포맷팅
+                let dateStr = diary.date_str;
+                if (!dateStr && diary.timestamp) {
+                    const d = diary.timestamp.toDate ? diary.timestamp.toDate() : new Date();
+                    dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                }
+
+                textContent += `[No.${cachedDiaries.length - index}] ${dateStr}\n`;
+                textContent += `📝 나의 기록:\n${diary.content}\n\n`;
+                textContent += `🌿 정원사의 답장:\n${diary.ai_reply || "(답장 없음)"}\n`;
+                
+                // 획득 스탯 표시
+                let statsArr = [];
+                if(diary.stat_increase) {
+                    for(const [k, v] of Object.entries(diary.stat_increase)) {
+                        if(v > 0) statsArr.push(`${k.toUpperCase()} +${v}`);
+                    }
+                }
+                if(statsArr.length > 0) textContent += `✨ 성장: ${statsArr.join(', ')}\n`;
+                
+                textContent += "\n-------------------------------------------\n\n";
+            });
+
+            // 3. 파일 생성 및 다운로드 트리거 (브라우저 기능 활용)
+            try {
+                const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `GeulSup_Backup_${now.getFullYear()}${now.getMonth()+1}${now.getDate()}.txt`;
+                document.body.appendChild(a); // 파이어폭스 등 호환성 위해 추가
+                a.click(); // 가상의 클릭 발생
+                
+                document.body.removeChild(a); // 청소
+                URL.revokeObjectURL(url); // 메모리 해제
+            } catch (err) {
+                console.error(err);
+                alert("백업 파일 생성 중 오류가 발생했습니다.");
+            }
+        });
+
+        // [6] 테마 버튼 로직
+        const themeBtns = document.querySelectorAll('#theme-group .opt-btn');
+        themeBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // 1. 버튼 스타일
+                themeBtns.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                // 2. 설정값 변경
+                globalTheme = e.target.dataset.val;
+                
+                // 3. 즉시 화면 갱신 (기다리지 않고 바로 바뀜)
+                updateDayNightCycle();
+                
+                audioClick.play();
+            });
+        });
+
+        // --- [NEW] 설정 모달 및 사운드 제어 로직 ---
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsCloseX = document.getElementById('settings-close-x');
+        const volBgmSlider = document.getElementById('vol-bgm');
+        const volSfxSlider = document.getElementById('vol-sfx');
+        const dispBgm = document.getElementById('disp-bgm');
+        const dispSfx = document.getElementById('disp-sfx');
+
+        // 사이드바의 두 번째 메뉴('정원 설정') 클릭 시 열기
+        // (순서가 바뀌지 않았는지 꼭 확인하세요!)
+        const settingsLink = document.querySelector('.menu-list li:nth-child(2) a');
+
+        settingsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            // 효과음 재생 (현재 설정된 globalSFXVolume 적용)
+            const sound = audioClick.cloneNode();
+            sound.volume = 1.0 * globalSFXVolume; 
+            sound.play().catch(()=>{});
+
+            settingsModal.classList.add('active');
+        });
+
+        settingsCloseX.addEventListener('click', () => settingsModal.classList.remove('active'));
+
+        // [1] 배경음(BGM) 조절 로직
+        // 배경음은 오디오 태그(audioAmbiance) 자체의 volume을 직접 바꿉니다.
+        volBgmSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            audioAmbiance.volume = val; // 태그 직접 제어
+            dispBgm.innerText = Math.round(val * 100) + '%';
+        });
+
+        // [2] 효과음(SFX) 조절 로직
+        // 효과음은 전역 변수(globalSFXVolume)를 업데이트하고,
+        // 나중에 효과음을 재생할 때 이 변수를 곱해서 씁니다.
+        volSfxSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            globalSFXVolume = val; // 전역 변수 업데이트
+            dispSfx.innerText = Math.round(val * 100) + '%';
+            
+            // 테스트용 소리 재생 (조절감 확인)
+            if(audioHover) {
+                const sound = audioHover.cloneNode();
+                sound.volume = 0.5 * globalSFXVolume; // 테스트용 볼륨
+                sound.play().catch(()=>{});
+            }
+        });
+
+        const optParticle = document.getElementById('opt-particle');
+        const dispParticle = document.getElementById('disp-particle');
+        const optParallax = document.getElementById('opt-parallax');
+
+        // 3. 파티클 조절 로직
+        optParticle.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            particleDensity = val;
+
+            // 텍스트 및 실제 개수 업데이트
+            if (val === 0) {
+                dispParticle.innerText = "끄기 (Off)";
+                particles = []; // 싹 비우기
+            } else if (val === 1) {
+                dispParticle.innerText = "보통 (Medium)";
+                // 너무 많으면 줄이기
+                if (particles.length > 50) particles = particles.slice(0, 50);
+            } else {
+                dispParticle.innerText = "많음 (High)";
+                // 부족하면 채워넣는 건 animate 루프가 알아서 함
+            }
+        });
+
+        // 4. Parallax ON/OFF 로직
+        optParallax.addEventListener('change', (e) => {
+            isParallaxOn = e.target.checked;
+            
+            if (!isParallaxOn) {
+                // 끄면 모든 섬을 중앙 정렬로 초기화 (깔끔하게)
+                const allObjects = document.querySelectorAll('.scene-object');
+                allObjects.forEach(obj => {
+                    // 원래 위치(baseX, baseY)로 복귀, translate는 0으로
+                    // (단, world-focused 상태일 때는 건드리지 않아야 함)
+                    if(!document.body.classList.contains('world-focused')) {
+                        obj.style.transform = `translate(-50%, 0px)`; 
+                    }
+                });
+            }
         });
 
         // 2. Firebase 설정 (윤호님의 설정값 그대로 유지)
@@ -1244,7 +1710,7 @@
         // 버튼 호버 시 효과음
         menuToggleBtn.addEventListener('mouseenter', () => {
             const sound = audioHover.cloneNode();
-            sound.volume = 0.05;
+            sound.volume = 0.5 * globalSFXVolume; // 0.1은 원래 최대 크기
             sound.play().catch(()=>{});
         });
 
@@ -1547,7 +2013,7 @@
             island.addEventListener('mouseenter', () => {
                 // 집중 모드가 아닐 때만 툴팁 표시
                 if(!document.body.classList.contains('world-focused') && island.classList.contains('visible')) {
-                    const sound = audioHover.cloneNode(); sound.volume = 0.1; sound.play().catch(()=>{});
+                    const sound = audioHover.cloneNode(); sound.volume = 0.5 * globalSFXVolume; sound.play().catch(()=>{});
                     tooltipEn.innerText = island.dataset.nameEn;
                     tooltipKr.innerText = island.dataset.nameKr;
                     const points = parseInt(island.dataset.points);
@@ -1570,6 +2036,7 @@
                 const points = parseInt(island.dataset.points);
                 const level = calculateLevel(points);
 
+                audioClick.volume = 1.0 * globalSFXVolume; 
                 audioClick.play();
                 document.body.classList.add('world-focused');
                 island.classList.add('focused-island');
@@ -1666,13 +2133,14 @@
         // --- 1. 버튼 호버 효과음 (기존 오디오 재활용) ---
         diaryOpenBtn.addEventListener('mouseenter', () => {
             const sound = audioHover.cloneNode();
-            sound.volume = 0.05;
+            sound.volume = 0.5 * globalSFXVolume;
             sound.play().catch(()=>{});
         });
 
 
         // --- 2. 모달 열기/닫기 ---
         diaryOpenBtn.addEventListener('click', () => {
+            audioClick.volume = 1.0 * globalSFXVolume;
             audioClick.play();
             diaryModal.classList.add('active');
             // 모달 열 때 현재 시간 업데이트
@@ -1779,7 +2247,7 @@
                 diaryModal.classList.remove('active');
                 setTimeout(() => {
                     resultModal.classList.add('active');
-                    audioResult.volume = 0.6;
+                    audioResult.volume = 0.6 * globalSFXVolume;
                     audioResult.play().catch(e => console.warn("결과 효과음 로드 실패:", e));
                 }, 500);
 
@@ -1963,26 +2431,50 @@
         createStars();
 
         function updateDayNightCycle() {
-            let now;
-            if (window.manualTime) { now = new Date(); now.setHours(window.manualTime.h, window.manualTime.m); } else { now = new Date(); }
-            const year = now.getFullYear(); const month = String(now.getMonth() + 1).padStart(2, '0'); const date = String(now.getDate()).padStart(2, '0');
-            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']; const dayName = days[now.getDay()];
-            hudDate.innerText = `${year}. ${month}. ${date}. ${dayName}`;
-            const hours = String(now.getHours()).padStart(2, '0'); const minutes = String(now.getMinutes()).padStart(2, '0');
-            hudTime.innerText = `${hours}:${minutes}`;
-            const h = now.getHours();
-            let skyGradient = ''; let starsOpacity = 0;
-            if (h >= 5 && h < 7) { skyGradient = 'linear-gradient(135deg, #2c3e50 0%, #4ca1af 60%, #ff9966 100%)'; starsOpacity = 0; }
-            else if (h >= 7 && h < 17) { skyGradient = 'linear-gradient(135deg, #2980b9 0%, #6dd5fa 50%, #ffffff 100%)'; starsOpacity = 0; }
-            else if (h >= 17 && h < 19) { skyGradient = 'linear-gradient(135deg, #3e5151 0%, #decba4 50%, #ff7e5f 100%)'; starsOpacity = 0.3; }
-            else { skyGradient = 'linear-gradient(160deg, #0f2027 0%, #203a43 60%, #2c5364 100%)'; starsOpacity = 1; }
-            skyBg.style.background = skyGradient; starsContainer.style.opacity = starsOpacity;
+            // 수동 테마 설정이 'auto'가 아니면, 그 설정을 따름
+            let h;
+            
+            if (globalTheme === 'day') {
+                h = 12; // 강제 낮 (정오)
+            } else if (globalTheme === 'night') {
+                h = 22; // 강제 밤 (밤 10시)
+            } else {
+                // auto면 실제 시간 사용
+                const now = window.manualTime ? new Date().setHours(window.manualTime.h) : new Date();
+                h = new Date(now).getHours();
+                
+                // HUD(왼쪽 상단 날짜)는 항상 실제 시간을 표시해야 함
+                const realNow = new Date();
+                const year = realNow.getFullYear(); 
+                const month = String(realNow.getMonth() + 1).padStart(2, '0'); 
+                const date = String(realNow.getDate()).padStart(2, '0');
+                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']; 
+                const dayName = days[realNow.getDay()];
+                hudDate.innerText = `${year}. ${month}. ${date}. ${dayName}`;
+                const hours = String(realNow.getHours()).padStart(2, '0'); 
+                const minutes = String(realNow.getMinutes()).padStart(2, '0');
+                hudTime.innerText = `${hours}:${minutes}`;
+            }
+
+            // 배경색 결정 로직 (기존과 동일하지만 h값에 따라 결정됨)
+            let skyGradient = ''; 
+            let starsOpacity = 0;
+
+            if (h >= 5 && h < 7) { 
+                skyGradient = 'linear-gradient(135deg, #2c3e50 0%, #4ca1af 60%, #ff9966 100%)'; starsOpacity = 0; // 새벽
+            } else if (h >= 7 && h < 17) { 
+                skyGradient = 'linear-gradient(135deg, #2980b9 0%, #6dd5fa 50%, #ffffff 100%)'; starsOpacity = 0; // 낮
+            } else if (h >= 17 && h < 19) { 
+                skyGradient = 'linear-gradient(135deg, #3e5151 0%, #decba4 50%, #ff7e5f 100%)'; starsOpacity = 0.3; // 노을
+            } else { 
+                skyGradient = 'linear-gradient(160deg, #02010a 0%, #040714 60%, #090c1f 100%)'; starsOpacity = 1; // 밤
+                isNightTime = true; // [NEW] 지금은 밤입니다!
+            }
+            
+            skyBg.style.background = skyGradient; 
+            starsContainer.style.opacity = starsOpacity;
         }
         setInterval(updateDayNightCycle, 1000); updateDayNightCycle(); 
-
-        let width, height;
-        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
-        window.addEventListener('resize', resize); resize();
 
         let mouseX = 0; let mouseY = 0; let targetX = 0; let targetY = 0;
         const parallaxSensitivity = 0.2; 
@@ -1993,13 +2485,31 @@
         });
 
         function updateParallax() {
-            targetX += (mouseX - targetX) * 0.05; targetY += (mouseY - targetY) * 0.05;
+            // [수정] 꺼져있거나 집중 모드일 땐 계산 중지 (성능 절약)
+            if (!isParallaxOn || document.body.classList.contains('world-focused')) {
+                requestAnimationFrame(updateParallax);
+                return;
+            }
+
+            targetX += (mouseX - targetX) * 0.05; 
+            targetY += (mouseY - targetY) * 0.05;
+
             const allObjects = document.querySelectorAll('.scene-object');
             allObjects.forEach(obj => {
-                const depth = parseFloat(obj.dataset.depth); const baseX = parseFloat(obj.dataset.baseX); const baseY = parseFloat(obj.dataset.baseY);
-                const moveX = targetX * depth * width * -1 * parallaxSensitivity; const moveY = targetY * depth * height * -1 * parallaxSensitivity;
-                obj.style.left = `${baseX}%`; obj.style.top = `${baseY}%`; obj.style.transform = `translate(calc(-50% + ${moveX}px), ${moveY}px)`;
+                const depth = parseFloat(obj.dataset.depth); 
+                const baseX = parseFloat(obj.dataset.baseX); 
+                const baseY = parseFloat(obj.dataset.baseY);
+
+                // 움직임 계산
+                const moveX = targetX * depth * width * -1 * parallaxSensitivity; 
+                const moveY = targetY * depth * height * -1 * parallaxSensitivity;
+
+                // 적용
+                obj.style.left = `${baseX}%`; 
+                obj.style.top = `${baseY}%`; 
+                obj.style.transform = `translate(calc(-50% + ${moveX}px), ${moveY}px)`;
             });
+
             requestAnimationFrame(updateParallax);
         }
 
@@ -2019,7 +2529,7 @@
         islandElements.forEach(island => {
             island.addEventListener('mouseenter', () => {
                 if(island.classList.contains('visible')) {
-                    const sound = audioHover.cloneNode(); sound.volume = 0.05; sound.play().catch(()=>{});
+                    const sound = audioHover.cloneNode(); sound.volume = 0.5 * globalSFXVolume; sound.play().catch(()=>{});
                     tooltipEn.innerText = island.dataset.nameEn;
                     tooltipKr.innerText = island.dataset.nameKr;
                     
@@ -2080,24 +2590,56 @@
         }
 
         function initIntroParticles() { for (let i = 0; i < particleCount; i++) particles.push(new Particle(true)); }
-        function spawnGardenParticles() { if (!isGardenMode) return; if (particles.length < 100) { particles.push(new Particle(false)); } }
+        function spawnGardenParticles() { 
+            if (!isGardenMode) return; 
+
+            // [수정] 설정값에 따라 최대 개수 제한
+            let maxParticles = 200; // 기본(많음)
+            if (particleDensity === 1) maxParticles = 50; // 보통
+            if (particleDensity === 0) maxParticles = 0;  // 끄기
+
+            if (particles.length < maxParticles) { 
+                particles.push(new Particle(false)); 
+            } 
+        }
         function animateParticles() {
-            ctx.clearRect(0, 0, width, height); for (let i = 0; i < particles.length; i++) { particles[i].update(); particles[i].draw(); }
+            ctx.clearRect(0, 0, width, height);
+            
+            // 1. 기존 파티클 (구름, 먼지 등)
+            for (let i = 0; i < particles.length; i++) { 
+                particles[i].update(); 
+                particles[i].draw(); 
+            }
             particles = particles.filter(p => !p.markedForDeletion);
+
+            // 2. [수정됨] 유성우 로직
+            if (isNightTime) {
+                // 1.5% 확률로 대기 중인(-5000) 별 하나를 골라 발사(reset)
+                if (Math.random() < 0.015) {
+                    const dormantStar = shootingStars.find(s => s.x === -5000);
+                    if (dormantStar) dormantStar.reset();
+                }
+
+                shootingStars.forEach(star => {
+                    star.update();
+                    star.draw();
+                });
+            }
+
             if (isGardenMode) { spawnGardenParticles(); }
             requestAnimationFrame(animateParticles);
         }
 
-        enterBtn.addEventListener('mouseenter', () => { const sound = audioHover.cloneNode(); sound.volume = 0.05; sound.play().catch(()=>{}); });
+        enterBtn.addEventListener('mouseenter', () => { const sound = audioHover.cloneNode(); sound.volume = 0.5 * globalSFXVolume; sound.play().catch(()=>{}); });
         enterBtn.addEventListener('click', () => {
             // [즉시 실행] 효과음, UI 페이드아웃, 월드 확대
             audioClick.play();
             
             // [수정] 클릭하자마자 구름 걷히는 소리와 바람 소리 즉시 재생
-            audioClear.volume = 0.2;
+            audioClear.volume = 0.4 * globalSFXVolume;
             audioClear.play();
             
-            audioAmbiance.volume = 0.3; // 바람 소리는 은은하게
+            audioAmbiance.volume = 1; // 바람 소리는 은은하게
             audioAmbiance.play();
 
             uiLayer.style.opacity = '0';
