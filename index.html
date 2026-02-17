@@ -611,6 +611,217 @@
             background: rgba(255, 255, 255, 0.05);
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
+        /* --- 일기 상세 모달 스타일 --- */
+        #diary-detail-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+            z-index: 7000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: all 0.4s ease;
+        }
+        #diary-detail-modal.active { opacity: 1; visibility: visible; }
+
+        .detail-window {
+            width: 600px; height: 80vh; 
+            background: linear-gradient(145deg, rgba(25, 30, 35, 0.95), rgba(10, 12, 15, 0.98));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 50px 40px; position: relative;
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 60px rgba(0,0,0,0.8);
+            transform: scale(0.95); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #diary-detail-modal.active .detail-window { transform: scale(1); }
+
+        .detail-header { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; margin-bottom: 30px; text-align: center; }
+        .detail-label { font-family: 'Cinzel', serif; font-size: 0.8rem; color: #666; letter-spacing: 0.2rem; }
+        #detail-date { font-family: 'Cinzel', serif; font-size: 1.8rem; color: #d4af37; margin-top: 10px; }
+
+        .detail-scroll-area { overflow-y: auto; padding-right: 10px; flex: 1; }
+        .detail-scroll-area::-webkit-scrollbar { width: 4px; }
+        .detail-scroll-area::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .detail-section { margin-bottom: 40px; }
+        .section-title { font-family: 'Nanum Myeongjo', serif; font-size: 0.9rem; color: #888; margin-bottom: 10px; border-left: 2px solid #555; padding-left: 10px; }
+        
+        .detail-text { font-family: 'Nanum Myeongjo', serif; font-size: 1.05rem; color: #ddd; line-height: 1.8; white-space: pre-wrap; }
+        
+        .ai-section { background: rgba(212, 175, 55, 0.05); padding: 20px; border-radius: 5px; border: 1px solid rgba(212, 175, 55, 0.1); }
+        .ai-text { color: #f0e6d2; font-style: italic; }
+
+        .stats-container { display: flex; gap: 10px; flex-wrap: wrap; }
+        /* --- [수정됨] 햄버거 메뉴 버튼 --- */
+        #menu-toggle-btn {
+            position: fixed; top: 30px; right: 40px; z-index: 9000;
+            background: transparent; border: none; cursor: pointer;
+            width: 35px; height: 25px; /* 크기 약간 조정 */
+            display: flex; flex-direction: column;
+            justify-content: space-between; align-items: flex-end;
+            padding: 0; transition: transform 0.3s ease;
+        }
+
+        .menu-line {
+            display: block; height: 2px; background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 2px; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* 쫀득한 움직임 */
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        
+        /* 닫혀있을 때: 감각적인 비대칭 길이 */
+        .menu-line:nth-child(1) { width: 100%; }
+        .menu-line:nth-child(2) { width: 70%; }
+        .menu-line:nth-child(3) { width: 40%; }
+
+        /* 호버 시: 금색으로 빛나며 꽉 참 */
+        #menu-toggle-btn:hover .menu-line {
+            width: 100% !important; 
+            background-color: #d4af37;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
+        }
+        #menu-toggle-btn:hover { transform: scale(1.1); }
+
+        /* [핵심 수정] 열렸을 때 (X자): 길이를 100%로 강제 통일하여 대칭 맞춤 */
+        #menu-toggle-btn.open .menu-line { width: 100% !important; background-color: #d4af37; }
+        
+        /* 중앙을 기준으로 정확히 교차하도록 좌표 수정 */
+        #menu-toggle-btn.open .menu-line:nth-child(1) { transform: translateY(11px) rotate(45deg); }
+        #menu-toggle-btn.open .menu-line:nth-child(2) { opacity: 0; transform: translateX(-20px); } /* 가운데는 휙 날아감 */
+        #menu-toggle-btn.open .menu-line:nth-child(3) { transform: translateY(-12px) rotate(-45deg); }
+
+
+        /* --- [수정됨] 메인 사이드바 --- */
+        #main-menu-sidebar {
+            position: fixed; top: 0; right: 0; width: 400px; /* 너비를 좀 더 넓혀서 그라데이션 여유 확보 */
+            height: 100%; z-index: 8500;
+            padding: 120px 50px; display: flex; flex-direction: column;
+            
+            /* [핵심 수정] 그라데이션: 왼쪽(투명) -> 오른쪽(진한 검정) */
+            /* backdrop-filter는 제거 (투명 그라데이션과 겹치면 지저분해 보일 수 있음) */
+            background: linear-gradient(to right, transparent 0%, rgba(5, 7, 10, 0.8) 30%, #05070a 100%);
+            
+            transform: translateX(100%); /* 화면 밖으로 숨김 */
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+            
+            /* 닫혀있을 때는 그림자 제거 (잔상 해결) */
+            box-shadow: none;
+            opacity: 0; pointer-events: none; /* 닫혀있을 때 클릭 방지 */
+        }
+
+        /* --- [수정됨] 메인 사이드바 --- */
+        #main-menu-sidebar {
+            position: fixed; top: 0; right: 0; width: 500px; /* 너비를 더 넓게 잡아서 그라데이션 구간 확보 */
+            height: 100%; z-index: 8500;
+            padding: 120px 60px 120px 100px; /* 왼쪽 패딩을 늘려서 내용은 어두운 쪽에 배치 */
+            display: flex; flex-direction: column;
+            
+            /* [핵심 수정 1] 왼쪽 테두리 제거 (이게 있으면 공중에 선만 떠다님) */
+            border-left: none;
+
+            /* [핵심 수정 2] 부드러운 그라데이션 (탁해지지 않게 rgba값 통일) */
+            /* 왼쪽(0%)은 완전 투명 -> 30% 지점부터 서서히 어두워짐 -> 70%부터는 거의 불투명 */
+            background: linear-gradient(to right, 
+                rgba(5, 7, 10, 0) 0%, 
+                rgba(5, 7, 10, 0.4) 30%, 
+                rgba(5, 7, 10, 0.95) 70%, 
+                rgba(5, 7, 10, 1) 100%
+            );
+            
+            transform: translateX(100%); /* 평소엔 숨김 */
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+            
+            box-shadow: none; /* 닫혀있을 때 그림자 제거 */
+            opacity: 0; pointer-events: none;
+        }
+
+        /* 열렸을 때 */
+        #main-menu-sidebar.active { 
+            transform: translateX(0); 
+            opacity: 1; 
+            pointer-events: auto;
+            /* 열렸을 때도 그림자는 제거하거나 아주 은은하게 (그라데이션이 그림자 역할 함) */
+            box-shadow: none; 
+        }
+
+        .menu-header { margin-bottom: 60px; text-align: right; }
+        .menu-header h2 { font-family: 'Cinzel', serif; color: #fff; font-size: 1.8rem; letter-spacing: 0.3rem; text-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .menu-underline { width: 100%; height: 1px; background: linear-gradient(to left, #d4af37, transparent); margin-top: 15px; }
+
+        .menu-list { list-style: none; text-align: right; margin-right: 10px; }
+        .menu-list li { margin-bottom: 30px; transform: translateX(50px); opacity: 0; transition: all 0.5s ease; }
+        
+        /* 순차 등장 애니메이션 */
+        #main-menu-sidebar.active .menu-list li { transform: translateX(0); opacity: 1; }
+        #main-menu-sidebar.active .menu-list li:nth-child(1) { transition-delay: 0.2s; }
+        #main-menu-sidebar.active .menu-list li:nth-child(2) { transition-delay: 0.3s; }
+        #main-menu-sidebar.active .menu-list li:nth-child(3) { transition-delay: 0.4s; }
+
+        .menu-list a {
+            color: #888; text-decoration: none; font-family: 'Nanum Myeongjo', serif; font-size: 1.2rem;
+            transition: color 0.3s, transform 0.3s; display: inline-block;
+        }
+        .menu-list a:hover { 
+            color: #d4af37; 
+            transform: translateX(-10px); /* 호버 시 왼쪽으로 살짝 이동 */
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.6); 
+        }
+
+        .menu-footer { margin-top: auto; text-align: right; opacity: 0.3; padding-right: 10px;}
+
+        body.world-focused #menu-toggle-btn {
+            opacity: 0;
+            pointer-events: none; /* 안 보일 때 클릭 안 되게 막음 (필수!) */
+            transform: scale(0.8) rotate(90deg); /* 살짝 작아지고 돌면서 사라지는 연출 */
+            transition: all 0.5s ease;
+        }
+        
+        /* 다시 나타날 때의 트랜지션도 부드럽게 (기존 스타일 덮어쓰기 방지용) */
+        #menu-toggle-btn {
+            transition: opacity 0.5s ease, transform 0.3s ease;
+        }
+
+        /* --- 프로필 모달 스타일 --- */
+        #profile-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px);
+            z-index: 9500; /* 메뉴(8500)보다 높아야 함 */
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: all 0.4s ease;
+        }
+        #profile-modal.active { opacity: 1; visibility: visible; }
+
+        .profile-window {
+            width: 450px; background: linear-gradient(135deg, #1a1c20 0%, #0f1012 100%);
+            border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 2px;
+            padding: 50px 40px; position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            transform: translateY(20px); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #profile-modal.active .profile-window { transform: translateY(0); }
+
+        /* 상단 정보 */
+        .profile-header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
+        .profile-icon {
+            width: 70px; height: 70px; background: rgba(255,255,255,0.05);
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            font-size: 2rem; border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        .profile-role { font-family: 'Cinzel', serif; color: #d4af37; font-size: 0.7rem; letter-spacing: 0.2rem; display: block; margin-bottom: 5px; }
+        #profile-nickname { font-family: 'Nanum Myeongjo', serif; color: #fff; font-size: 2rem; margin: 0; line-height: 1; }
+        .join-date { font-family: 'Cinzel', serif; color: #666; font-size: 0.8rem; margin-top: 8px; }
+
+        .profile-divider { width: 100%; height: 1px; background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent); margin-bottom: 30px; }
+
+        /* 통계 영역 */
+        .stats-title { font-family: 'Nanum Myeongjo', serif; color: #ddd; font-size: 1.1rem; margin-bottom: 5px; }
+        .stats-desc { font-family: 'Nanum Myeongjo', serif; color: #777; font-size: 0.8rem; margin-bottom: 25px; }
+
+        .stat-bar-group { margin-bottom: 15px; }
+        .stat-label-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-family: 'Cinzel', serif; font-size: 0.8rem; color: #aaa; }
+        .stat-track { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+        .stat-fill { height: 100%; width: 0%; transition: width 1s cubic-bezier(0.22, 1, 0.36, 1); border-radius: 3px; position: relative; }
+        
+        /* 바에서 빛나는 효과 */
+        .stat-fill::after {
+            content: ''; position: absolute; top: 0; right: 0; width: 5px; height: 100%;
+            background: rgba(255,255,255,0.8); box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -729,6 +940,29 @@
             <button id="nickname-submit-btn">정원사에게 이름 알려주기</button>
         </div>
     </div>
+
+    <button id="menu-toggle-btn">
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+    </button>
+
+    <aside id="main-menu-sidebar">
+        <div class="menu-header">
+            <h2>SYSTEM</h2>
+            <div class="menu-underline"></div>
+        </div>
+        
+        <ul class="menu-list">
+            <li><a href="#">내 프로필 (Profile)</a></li>
+            <li><a href="#">정원 설정 (Settings)</a></li>
+            <li><a href="#">도움말 (Help)</a></li>
+            </ul>
+
+        <div class="menu-footer">
+            <span style="font-family: 'Cinzel'; font-size: 0.7rem; color: #555;">GEULSEUP v1.0</span>
+        </div>
+    </aside>
     
     <aside id="island-info-panel">
         <button id="panel-close-btn">✕</button>
@@ -796,6 +1030,59 @@
         </div>
     </div>
 
+    <div id="profile-modal">
+        <div class="profile-window">
+            <span class="close-modal" id="profile-close-x">✕</span>
+            
+            <div class="profile-header">
+                <div class="profile-icon">🧙‍♂️</div> <div class="profile-info">
+                    <span class="profile-role">GARDEN MASTER</span>
+                    <h2 id="profile-nickname">여행자</h2>
+                    <p id="profile-join-date" class="join-date">Since 2024. 05. 21.</p>
+                </div>
+            </div>
+
+            <div class="profile-divider"></div>
+
+            <div class="profile-stats-area">
+                <h3 class="stats-title">이번 달의 성장 (Monthly Growth)</h3>
+                <p class="stats-desc">이번 달, 당신의 마음속 정원에서 자라난 기운들입니다.</p>
+                
+                <div id="monthly-stat-container">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="diary-detail-modal">
+        <div class="detail-window">
+            <span class="close-modal" id="detail-close-x">✕</span>
+            
+            <div class="detail-header">
+                <span class="detail-label">ARCHIVED MEMORY</span>
+                <h2 id="detail-date">2024. 05. 21. TUE</h2>
+            </div>
+
+            <div class="detail-scroll-area">
+                <div class="detail-section">
+                    <div class="section-title">나의 기록</div>
+                    <p id="detail-content" class="detail-text">일기 내용이 들어갑니다...</p>
+                </div>
+
+                <div class="detail-section ai-section">
+                    <div class="section-title">정원사의 답장 🌿</div>
+                    <p id="detail-ai-reply" class="detail-text ai-text">정원사의 답변이 들어갑니다...</p>
+                </div>
+
+                <div class="detail-section">
+                    <div class="section-title">성장한 기운</div>
+                    <div id="detail-stats" class="stats-container">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
@@ -813,6 +1100,13 @@
         const tooltipKr = document.getElementById('tooltip-kr');
         const tooltipLvl = document.getElementById('tooltip-lvl'); // 레벨 툴팁
         const devPanel = document.getElementById('dev-panel'); // 개발자 패널
+        const detailModal = document.getElementById('diary-detail-modal');
+        const detailCloseX = document.getElementById('detail-close-x');
+        const menuToggleBtn = document.getElementById('menu-toggle-btn');
+        const mainMenuSidebar = document.getElementById('main-menu-sidebar');
+        const profileModal = document.getElementById('profile-modal');
+        const profileCloseX = document.getElementById('profile-close-x');
+        const profileLink = document.querySelector('.menu-list li:first-child a');
         const logoutBtn = document.getElementById('logout-btn');
 
         const audioHover = document.getElementById('sfx-hover');
@@ -840,6 +1134,13 @@
         const resultCloseBtn = document.getElementById('result-close-btn');
         const audioResult = document.getElementById('sfx-result');
         const audioHit = document.getElementById('sfx-hit');
+        let cachedDiaries = []; // 🧺 일기 데이터를 미리 담아둘 바구니
+
+        profileLink.addEventListener('click', (e) => {
+            e.preventDefault(); // # 이동 방지
+            audioClick.play();
+            openProfileModal();
+        });
 
         // 2. Firebase 설정 (윤호님의 설정값 그대로 유지)
         const firebaseConfig = {
@@ -884,19 +1185,205 @@
                 });
         });
 
-        // --- 4. 로그인 상태 감지 (핵심 로직) ---
+        menuToggleBtn.addEventListener('click', () => {
+            audioClick.play();
+            
+            // 만약 '섬 정보 패널(집중 모드)'이 열려있다면? -> 닫아버리기
+            if (document.body.classList.contains('world-focused')) {
+                closeFocusMode(); 
+            }
+
+            // 메뉴 토글 (active 클래스 스위칭)
+            menuToggleBtn.classList.toggle('open');
+            mainMenuSidebar.classList.toggle('active');
+        });
+
+        // 버튼 호버 시 효과음
+        menuToggleBtn.addEventListener('mouseenter', () => {
+            const sound = audioHover.cloneNode();
+            sound.volume = 0.05;
+            sound.play().catch(()=>{});
+        });
+
+        async function loadAllDiaries(uid) {
+            try {
+                const snapshot = await db.collection('users').doc(uid).collection('diaries')
+                    .orderBy('timestamp', 'desc') // 최신순 정렬
+                    .get();
+                
+                cachedDiaries = []; // 초기화
+                snapshot.forEach(doc => {
+                    cachedDiaries.push(doc.data()); // 바구니에 담기
+                });
+                console.log("일기 데이터 로드 완료:", cachedDiaries.length, "개");
+            } catch (err) {
+                console.error("데이터 로드 실패:", err);
+            }
+        }
+
+        function openDetailModal(data, dateStr) {
+            document.getElementById('detail-date').innerText = dateStr;
+            document.getElementById('detail-content').innerText = data.content;
+            document.getElementById('detail-ai-reply').innerText = data.ai_reply || "정원사의 답장이 없습니다.";
+            
+            // 스탯 표시
+            const statsContainer = document.getElementById('detail-stats');
+            statsContainer.innerHTML = '';
+            
+            if (data.stat_increase) {
+                for (const [key, value] of Object.entries(data.stat_increase)) {
+                    if (value > 0) {
+                        const badge = document.createElement('div');
+                        badge.classList.add('point-badge', `badge-${key}`);
+                        badge.innerText = `${key.toUpperCase()} +${value}`;
+                        statsContainer.appendChild(badge);
+                    }
+                }
+            }
+
+            detailModal.classList.add('active');
+        }
+
+        // 닫기 버튼 이벤트
+        detailCloseX.addEventListener('click', () => {
+            detailModal.classList.remove('active');
+        });
+
+        // 모달 배경 클릭 시 닫기
+        detailModal.addEventListener('click', (e) => {
+            if (e.target === detailModal) detailModal.classList.remove('active');
+        });
+
+        function openProfileModal() {
+            // 1. 유저 기본 정보 채우기
+            if (currentUser) {
+                // 닉네임은 userGreeting에서 가져오거나 DB에서 다시 가져올 수 있음
+                // 여기서는 간단히 DB 로드된 값을 쓴다고 가정 (없으면 Auth 정보)
+                db.collection('users').doc(currentUser.uid).get().then(doc => {
+                    if(doc.exists) {
+                        document.getElementById('profile-nickname').innerText = doc.data().nickname;
+                        
+                        // 가입일 (timestamp -> Date 변환)
+                        const joinDate = doc.data().createdAt ? doc.data().createdAt.toDate() : new Date();
+                        const year = joinDate.getFullYear();
+                        const month = String(joinDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(joinDate.getDate()).padStart(2, '0');
+                        document.getElementById('profile-join-date').innerText = `Since ${year}. ${month}. ${day}.`;
+                    }
+                });
+            }
+
+            // 2. [핵심] 이번 달 스탯 계산하기
+            const now = new Date();
+            const thisMonth = now.getMonth(); // 0 ~ 11
+            const thisYear = now.getFullYear();
+            
+            // 이번 달에 해당하는 스탯 누적 변수
+            let monthlyStats = { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 };
+            let maxVal = 1; // 그래프 비율 계산용 최대값 (최소 1)
+
+            // 캐시된 일기장에서 이번 달 것만 필터링
+            cachedDiaries.forEach(diary => {
+                let dDate;
+                if (diary.timestamp && typeof diary.timestamp.toDate === 'function') {
+                    dDate = diary.timestamp.toDate();
+                } else {
+                    dDate = new Date(); // fallback
+                }
+
+                if (dDate.getMonth() === thisMonth && dDate.getFullYear() === thisYear) {
+                    if (diary.stat_increase) {
+                        for (const [key, val] of Object.entries(diary.stat_increase)) {
+                            if (monthlyStats[key] !== undefined) {
+                                monthlyStats[key] += val;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 최대값 찾기 (그래프 꽉 차게 보이기 위해)
+            maxVal = Math.max(...Object.values(monthlyStats), 10); // 적어도 10점은 되어야 꽉 참
+
+            // 3. 그래프 그리기
+            const container = document.getElementById('monthly-stat-container');
+            container.innerHTML = '';
+
+            const virtueNames = { 
+                courage: '용기 (Courage)', wisdom: '지혜 (Wisdom)', 
+                kindness: '친절 (Kindness)', diligence: '성실 (Diligence)', serenity: '평온 (Serenity)' 
+            };
+
+            for (const [key, val] of Object.entries(monthlyStats)) {
+                const percent = Math.min((val / maxVal) * 100, 100); // 100% 넘지 않게
+                const color = virtueColors[key]; // 기존에 정의한 색상 활용
+
+                const div = document.createElement('div');
+                div.className = 'stat-bar-group';
+                div.innerHTML = `
+                    <div class="stat-label-row">
+                        <span>${virtueNames[key]}</span>
+                        <span style="color:${color}">${val} pts</span>
+                    </div>
+                    <div class="stat-track">
+                        <div class="stat-fill" style="width: 0%; background-color: ${color}; box-shadow: 0 0 10px ${color};"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+
+                // 애니메이션 (약간의 딜레이 후 차오름)
+                setTimeout(() => {
+                    div.querySelector('.stat-fill').style.width = `${percent}%`;
+                }, 100);
+            }
+
+            profileModal.classList.add('active');
+        }
+
+        // 닫기 로직
+        profileCloseX.addEventListener('click', () => profileModal.classList.remove('active'));
+        profileModal.addEventListener('click', (e) => {
+            if(e.target === profileModal) profileModal.classList.remove('active');
+        });
+
+        // --- 4. 로그인 상태 감지 (수정됨) ---
         auth.onAuthStateChanged(async (user) => {
             if (user) {
                 currentUser = user;
                 googleLoginBtn.style.display = 'none';
                 logoutBtn.style.display = 'block'; // 로그아웃 버튼 표시
 
+                // 유저 정보 가져오기
                 const userDoc = await db.collection('users').doc(user.uid).get();
 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
                     showEnterButton(userData.nickname);
+                    
+                    // [NEW] 1. 유저의 누적 스탯(total_points)을 가져와서 화면에 반영하기
+                    if (userData.total_points) {
+                        // DB에 있는 스탯을 로컬 변수(currentPoints)에 덮어씌움
+                        currentPoints = { ...currentPoints, ...userData.total_points };
+                        
+                        // 각 덕목별로 섬 이미지 및 슬라이더 수치 업데이트
+                        virtues.forEach(v => {
+                            const p = currentPoints[v] || 0;
+                            // 개발자 모드 슬라이더 업데이트
+                            const slider = document.getElementById(`rng-${v}`);
+                            const display = document.getElementById(`val-${v}`);
+                            if (slider) slider.value = p;
+                            if (display) display.innerText = p;
+                            
+                            // [핵심] 불러온 점수로 섬 이미지 갱신!
+                            updateIslandVisual(v, p); 
+                        });
+                    }
+
+                    // 2. 일기 목록 미리 로드 (기존에 만든 기능)
+                    await loadAllDiaries(user.uid); 
+
                 } else {
+                    // 신규 유저일 경우 이름 설정 창 띄우기
                     nicknameModal.classList.add('active');
                 }
             } else {
@@ -904,10 +1391,12 @@
                 currentUser = null;
                 googleLoginBtn.style.display = 'flex';
                 enterButton.style.display = 'none';
-                logoutBtn.style.display = 'none'; // 로그아웃 버튼 숨김
+                logoutBtn.style.display = 'none';
                 userGreeting.style.opacity = '0';
                 
-                // 정원 모드였다면 초기 화면으로 리셋하는 로직이 필요할 수 있습니다.
+                // 데이터 초기화
+                cachedDiaries = [];
+                currentPoints = { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 };
             }
         });
 
@@ -1026,53 +1515,69 @@
             });
             island.addEventListener('mouseleave', () => { tooltip.classList.remove('active'); });
 
-            // 2. [NEW] 클릭 시 집중 모드 (Focus Mode) 진입
             island.addEventListener('click', (e) => {
-                // 이미 집중 모드라면 무시
+                if (mainMenuSidebar.classList.contains('active')) {
+                    mainMenuSidebar.classList.remove('active');
+                    menuToggleBtn.classList.remove('open');
+                }
                 if (document.body.classList.contains('world-focused')) return;
 
-                e.stopPropagation(); // 배경 클릭 이벤트 전파 방지
+                e.stopPropagation();
                 const type = island.dataset.type;
                 const points = parseInt(island.dataset.points);
                 const level = calculateLevel(points);
 
-                // 1) 효과음 재생
                 audioClick.play();
+                document.body.classList.add('world-focused');
+                island.classList.add('focused-island');
 
-                // 2) 월드 상태 변경 (CSS 애니메이션 트리거)
-                document.body.classList.add('world-focused'); // body에 클래스 추가로 전체 제어
-                island.classList.add('focused-island'); // 클릭된 섬 마킹
-
-                // 3) 사이드 패널 데이터 채우기
+                // 패널 UI 채우기 (기존과 동일)
                 document.getElementById('panel-title-kr').innerText = islandData[type].kr;
                 document.getElementById('panel-title-en').innerText = islandData[type].en;
                 document.getElementById('panel-lvl').innerText = `Lv. ${level}`;
                 document.getElementById('panel-pts').innerText = points;
-                
-                // 레벨바 채우기 (최대 레벨 10 기준 퍼센트)
                 document.getElementById('panel-progress-bar').style.width = `${(level / 10) * 100}%`;
 
-                // 일기 리스트 생성 (촤라라락)
-                panelDiaryList.innerHTML = ''; // 초기화
-                const logs = islandData[type].logs;
-                
-                if (logs.length === 0) {
-                    panelDiaryList.innerHTML = '<li style="color:#555; font-size:0.8rem; text-align:center; margin-top:20px;">아직 기록된 이야기가 없습니다.</li>';
+                // [NEW] 바구니(cachedDiaries)에서 필터링하기 (즉발 로딩 ⚡️)
+                const listContainer = document.getElementById('panel-diary-list');
+                listContainer.innerHTML = ''; 
+
+                // 해당 덕목(type) 점수가 0보다 큰 일기만 골라내기
+                const filteredLogs = cachedDiaries.filter(data => 
+                    data.stat_increase && data.stat_increase[type] > 0
+                );
+
+                if (filteredLogs.length === 0) {
+                    listContainer.innerHTML = '<li style="color:#555; font-size:0.8rem; text-align:center; margin-top:20px;">아직 이 정원에 핀 이야기가 없습니다.</li>';
                 } else {
-                    logs.forEach((log, index) => {
+                    filteredLogs.forEach((data, index) => {
+                        let dateStr = data.date_str || "날짜 미상";
+                        if(!data.date_str && data.timestamp) {
+                             const date = data.timestamp.toDate();
+                             dateStr = `${date.getFullYear()}. ${String(date.getMonth()+1).padStart(2,'0')}. ${String(date.getDate()).padStart(2,'0')}`;
+                        }
+
                         const li = document.createElement('li');
                         li.classList.add('diary-item');
-                        li.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.1}s`; // 순차적 등장
-                        li.style.opacity = '0'; // 애니메이션 시작 전 숨김
+                        li.style.animation = `fadeInUp 0.5s ease forwards ${index * 0.05}s`;
+                        li.style.opacity = '0';
+                        li.style.cursor = 'pointer'; // 클릭 가능 표시
+
                         li.innerHTML = `
-                            <span class="diary-date">${log.date}</span>
-                            <span class="diary-snippet">${log.text}</span>
+                            <span class="diary-date">${dateStr}</span>
+                            <span class="diary-snippet">${data.content}</span>
+                            <div style="font-size: 0.7rem; color: #d4af37; margin-top: 5px; opacity: 0.8;">
+                                🌿 "${data.ai_reply ? data.ai_reply.substring(0, 20) : "..."}..."
+                            </div>
                         `;
-                        panelDiaryList.appendChild(li);
+
+                        // [NEW] 리스트 아이템 클릭 시 상세 모달 열기!
+                        li.addEventListener('click', () => openDetailModal(data, dateStr));
+
+                        listContainer.appendChild(li);
                     });
                 }
 
-                // 4) 사이드 패널 열기
                 sidePanel.classList.add('active');
             });
         });
@@ -1147,28 +1652,70 @@
             }
         });
 
+        // --- 5. [수정] 일기 제출 및 저장 로직 ---
         diarySubmitBtn.addEventListener('click', async () => {
             const text = diaryTextarea.value;
+            
+            // 유효성 검사
+            if (text.length < 30 || text.length > 200) {
+                alert("일기는 30자 이상 200자 이하로 작성해주세요.");
+                return;
+            }
+
             diarySubmitBtn.disabled = true;
             diarySubmitBtn.innerText = "정원사가 읽는 중... 🌿";
             audioClick.play();
 
             try {
+                // 1. 서버(Render)에 분석 요청
                 const result = await realAnalyzeDiary(text);
+                currentLastResult = result; // 결과 모달용 저장
+
+                // 2. [핵심] Firestore에 일기 데이터 저장
+                // users -> (내 UID) -> diaries -> (자동생성ID) 문서 생성
+                await db.collection('users').doc(currentUser.uid).collection('diaries').add({
+                    content: text, // 내가 쓴 일기
+                    ai_reply: result.comment, // 정원사의 답장
+                    stat_increase: result.points, // 이번에 오른 점수들
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(), // 정확한 서버 시간
+                    date_str: new Date().toISOString().slice(0,10) // 검색용 날짜 문자열 (2024-05-21)
+                });
+
+                const newDiaryObj = {
+                    content: text,
+                    ai_reply: result.comment,
+                    stat_increase: result.points,
+                    timestamp: { toDate: () => new Date() }, // 로컬 표시용 가짜 타임스탬프
+                    date_str: new Date().toISOString().slice(0,10)
+                };
                 
-                // [중요] 나중에 오브 연출에서 쓸 수 있도록 결과 저장!
-                currentLastResult = result; 
+                // [NEW] 바구니 맨 앞에 새 일기 추가 (새로고침 없이 즉시 반영)
+                cachedDiaries.unshift(newDiaryObj);
 
-                const now = new Date();
-                const dateStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+                // 3. [핵심] 유저의 총 능력치(Total Points) 실시간 업데이트
+                const userRef = db.collection('users').doc(currentUser.uid);
+                
+                // 점수가 오른 항목만 골라서 기존 점수에 더하기(increment)
+                const updateData = {};
+                for (const [virtue, score] of Object.entries(result.points)) {
+                    if (score > 0) {
+                        // total_points.courage += 8 이런 식으로 작동함
+                        updateData[`total_points.${virtue}`] = firebase.firestore.FieldValue.increment(score);
+                    }
+                }
+                
+                // 업데이트 실행 (만약 total_points 필드가 없으면 자동으로 생성됨)
+                await userRef.update(updateData);
 
+
+                // --- 이하 연출 및 UI 업데이트 코드는 기존과 동일 ---
                 resultPointUpArea.innerHTML = '';
                 
                 virtues.forEach((v, index) => {
                     const p = result.points[v] || 0;
                     if (p > 0) {
                         currentPoints[v] += p;
-                        islandData[v].logs.unshift({ date: dateStr, text: text });
+                        islandData[v].logs.unshift({ date: '방금 전', text: text });
                         
                         const badge = document.createElement('div');
                         badge.classList.add('point-badge', `badge-${v}`);
@@ -1176,7 +1723,6 @@
                         badge.style.animationDelay = `${0.8 + (index * 0.1)}s`;
                         resultPointUpArea.appendChild(badge);
 
-                        // 화면 업데이트
                         const slider = document.getElementById(`rng-${v}`);
                         const display = document.getElementById(`val-${v}`);
                         if (slider) slider.value = currentPoints[v];
@@ -1190,7 +1736,6 @@
                 diaryModal.classList.remove('active');
                 setTimeout(() => {
                     resultModal.classList.add('active');
-                    // [에러방지] 효과음 파일 없어도 코드 안 멈추게 catch 추가
                     audioResult.volume = 0.6;
                     audioResult.play().catch(e => console.warn("결과 효과음 로드 실패:", e));
                 }, 500);
@@ -1200,7 +1745,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("숲의 기운(API)이 불안정합니다. CORS 설정을 확인해주세요!");
+                alert("일기 기록 중 문제가 발생했습니다: " + err.message);
             } finally {
                 diarySubmitBtn.disabled = false;
                 diarySubmitBtn.innerText = "나무 심기 (기록)";
