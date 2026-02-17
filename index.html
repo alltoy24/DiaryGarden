@@ -822,6 +822,49 @@
             content: ''; position: absolute; top: 0; right: 0; width: 5px; height: 100%;
             background: rgba(255,255,255,0.8); box-shadow: 0 0 10px rgba(255,255,255,0.8);
         }
+        /* 📱 [NEW] 모바일 전용 반응형 스타일 (화면 폭 768px 이하일 때 적용) */
+        @media screen and (max-width: 768px) {
+            
+            /* 1. 메인 타이틀 크기 축소 */
+            .main-title { font-size: 3rem; letter-spacing: 0.3rem; }
+            .sub-title { font-size: 0.8rem; letter-spacing: 0.2rem; margin-bottom: 30px; }
+            .main-content-box { margin-bottom: 15vh; }
+
+            /* 2. 모든 모달 창(일기, 결과, 프로필, 상세) 너비 최적화 */
+            .diary-window, .result-window, .detail-window, .profile-window {
+                width: 90% !important; /* 화면 꽉 차게 */
+                max-height: 85vh;      /* 위아래 여백 확보 */
+                padding: 30px 20px;    /* 내부 여백 줄이기 */
+            }
+            
+            /* 3. 텍스트 입력창 높이 조절 */
+            #diary-textarea { height: 180px; }
+
+            /* 4. 메인 메뉴 사이드바 (화면 전체 덮기) */
+            #main-menu-sidebar { 
+                width: 100%; 
+                padding: 100px 30px; /* 패딩 조정 */
+                background: linear-gradient(to right, rgba(5,7,10,0.9), #05070a); /* 모바일은 가독성 위해 좀 더 진하게 */
+            }
+
+            /* 5. 섬 정보 패널 (화면 전체 덮기) */
+            #island-info-panel { 
+                width: 100%; 
+                right: -100%; /* 숨겨진 위치 수정 */
+                border-left: none; /* 모바일은 전체화면이라 경계선 불필요 */
+            }
+            #island-info-panel.active { right: 0; }
+
+            /* 6. 버튼들 위치 및 크기 조정 */
+            #menu-toggle-btn { top: 20px; right: 20px; transform: scale(0.9); }
+            #diary-open-btn { bottom: 30px; right: 20px; font-size: 0.9rem; }
+            .minimal-logout-btn { bottom: 20px; font-size: 0.6rem; }
+
+            /* 7. 모바일에서 너무 큰 글씨들 조정 */
+            #tooltip-kr { font-size: 1.2rem; }
+            .panel-header h2 { font-size: 2rem; }
+            #profile-nickname { font-size: 1.5rem; }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
