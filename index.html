@@ -1275,6 +1275,34 @@
         @keyframes textFade {
             from { opacity: 0.4; } to { opacity: 1; }
         }
+        /* [추가] 게스트 로그인 버튼 스타일 */
+        .guest-btn {
+            background: transparent;
+            border: none;
+            color: #888; /* 은은한 회색 */
+            font-family: 'Nanum Myeongjo', serif;
+            font-size: 0.8rem; /* 작은 글씨 */
+            margin-top: 15px;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-color: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .guest-btn:hover {
+            color: #d4af37; /* 호버 시 금색 */
+            text-decoration-color: #d4af37;
+        }
+        /* [추가] 게스트 모달 활성화 스타일 */
+        #guest-warning-modal.active {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        #guest-warning-modal.active .warning-window {
+            transform: scale(1) !important;
+        }
+        /* 버튼 호버 효과 */
+        #btn-guest-cancel:hover { border-color: #fff; color: #fff; }
+        #btn-guest-confirm:hover { background: #fff; border-color: #fff; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1377,6 +1405,10 @@
         <button id="google-login-btn" class="google-btn">
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
             <span>Google로 시작하기</span>
+        </button>
+
+        <button id="guest-login-btn" class="guest-btn">
+            Guest Login으로 하기
         </button>
 
         <button id="enter-btn" class="enter-btn" style="display: none;">정원 들어가기</button>
@@ -1697,6 +1729,22 @@
         </div>
     </div>
 
+    <div id="guest-warning-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(5px); z-index:12000; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transition:all 0.3s ease;">
+        <div class="warning-window" style="width:500px; padding:50px; background:linear-gradient(145deg, #1a1a20, #0b0b0e); border:1px solid #d4af37; text-align:center; box-shadow: 0 0 60px rgba(0,0,0,0.9); transform:scale(0.9); transition:transform 0.3s ease;">
+            <div style="font-family:'Cinzel'; color:#d4af37; font-size:0.9rem; letter-spacing:0.3rem; margin-bottom:20px;">GUEST ENTRY</div>
+            <h3 style="font-family:'Nanum Myeongjo'; font-size:1.6rem; color:#fff; margin-bottom:30px; line-height:1.4;">손님으로 입장하시겠습니까?</h3>
+            <p style="font-family:'Nanum Myeongjo'; font-size:1rem; color:#aaa; line-height:1.8; margin-bottom:40px;">
+                ⚠️ <strong>주의:</strong> 게스트 데이터는 브라우저에 저장됩니다.<br>
+                인터넷 기록 삭제나 브라우저 변경 시<br>
+                <span style="color:#ff6b6b;">소중한 기록이 사라질 수 있습니다.</span>
+            </p>
+            <div style="display:flex; justify-content:center; gap:15px;">
+                <button id="btn-guest-cancel" style="background:transparent; border:1px solid #555; color:#888; padding:12px 30px; cursor:pointer; font-family:'Nanum Myeongjo'; transition:0.3s;">돌아가기</button>
+                <button id="btn-guest-confirm" style="background:#d4af37; border:1px solid #d4af37; color:#000; padding:12px 30px; cursor:pointer; font-family:'Nanum Myeongjo'; font-weight:bold; transition:0.3s;">네, 입장합니다</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
@@ -1729,6 +1777,9 @@
         const audioAmbiance = document.getElementById('sfx-ambiance');
         const hudDate = document.getElementById('hud-date');
         const hudTime = document.getElementById('hud-time');
+        const guestWarningModal = document.getElementById('guest-warning-modal');
+        const btnGuestConfirm = document.getElementById('btn-guest-confirm');
+        const btnGuestCancel = document.getElementById('btn-guest-cancel');
 
         let width, height; // 변수를 먼저 만듭니다.
         function resize() { 
@@ -1775,6 +1826,60 @@
         const seasonTypoList = document.getElementById('season-typo-list');
         const seasonActions = document.getElementById('season-actions');
         const seasonResetBtn = document.getElementById('season-reset-btn');
+
+        let isGuestMode = false; // 게스트 모드 판별 플래그
+        const guestLoginBtn = document.getElementById('guest-login-btn');
+
+        // 1. 게스트 버튼 클릭 시 -> 모달 띄우기
+        guestLoginBtn.addEventListener('click', () => {
+            playSfx('sfx-click');
+            guestWarningModal.classList.add('active');
+        });
+
+        // 2. [돌아가기] 클릭 시 -> 모달 닫기
+        btnGuestCancel.addEventListener('click', () => {
+            playSfx('sfx-click');
+            guestWarningModal.classList.remove('active');
+        });
+
+        // 3. [입장하기] 클릭 시 -> 실제 게스트 로그인 진행
+        btnGuestConfirm.addEventListener('click', () => {
+            playSfx('sfx-click');
+            guestWarningModal.classList.remove('active'); // 모달 닫기
+
+            // --- 여기서부터 기존 게스트 로그인 로직 실행 ---
+            isGuestMode = true;
+            currentUser = { uid: 'guest', isAnonymous: true };
+            
+            // UI 변경
+            document.getElementById('google-login-btn').style.display = 'none';
+            document.getElementById('guest-login-btn').style.display = 'none';
+            logoutBtn.style.display = 'block';
+            
+            // 데이터 로드
+            loadAllDiaries('guest');
+            loadGuestPoints(); 
+            
+            // 닉네임 확인
+            const savedNickname = localStorage.getItem('geulsup_guest_nickname');
+            
+            if (savedNickname) {
+                showEnterButton(savedNickname + " (Guest)");
+            } else {
+                document.getElementById('nickname-modal').classList.add('active');
+            }
+        });
+
+        // [추가] 게스트 포인트 로드 함수
+        function loadGuestPoints() {
+            const savedPoints = localStorage.getItem('geulsup_guest_points');
+            if (savedPoints) {
+                currentPoints = JSON.parse(savedPoints);
+            } else {
+                currentPoints = { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 };
+            }
+            applyPointsToWorld();
+        }
 
         const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -2515,36 +2620,44 @@
         });
 
         async function loadAllDiaries(uid) {
-            try {
-                const snapshot = await db.collection('users').doc(uid).collection('diaries')
-                    .orderBy('timestamp', 'desc')
-                    .limit(300) // 넉넉하게
-                    .get();
-                
-                cachedDiaries = [];
-                thisMonthDiaries = []; // 초기화
+            cachedDiaries = [];
+            thisMonthDiaries = [];
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
 
-                const now = new Date();
-                const currentYear = now.getFullYear();
-                const currentMonth = now.getMonth();
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    cachedDiaries.push(data); // 전체 보관용
-
-                    // [핵심] 이번 달 일기인지 확인
-                    let dDate = null;
-                    if(data.timestamp && data.timestamp.toDate) dDate = data.timestamp.toDate();
-                    else if(data.date_str) dDate = new Date(data.date_str);
-
-                    if(dDate && dDate.getFullYear() === currentYear && dDate.getMonth() === currentMonth) {
-                        thisMonthDiaries.push(data);
-                    }
-                });
-                console.log(`총 ${cachedDiaries.length}개 중 이번 달 일기 ${thisMonthDiaries.length}개 로드됨`);
-            } catch (err) {
-                console.error("데이터 로드 실패:", err);
+            if (isGuestMode) {
+                // [Guest] 로컬스토리지에서 가져오기
+                const localData = localStorage.getItem('geulsup_guest_diaries');
+                if (localData) {
+                    cachedDiaries = JSON.parse(localData);
+                    // 타임스탬프 문자열을 Date 객체로 복원해줘야 함 (필수!)
+                    cachedDiaries.forEach(d => {
+                        // 로컬 저장은 timestamp 함수가 없으므로 직접 변환
+                        d.timestamp = { toDate: () => new Date(d.date_str) };
+                    });
+                }
+            } else {
+                // [Member] Firebase에서 가져오기 (기존 코드)
+                try {
+                    const snapshot = await db.collection('users').doc(uid).collection('diaries')
+                        .orderBy('timestamp', 'desc').limit(300).get();
+                    snapshot.forEach(doc => cachedDiaries.push(doc.data()));
+                } catch (err) { console.error(err); }
             }
+
+            // 이번 달 데이터 필터링 (공통 로직)
+            cachedDiaries.forEach(data => {
+                let dDate = null;
+                if(data.timestamp && typeof data.timestamp.toDate === 'function') dDate = data.timestamp.toDate();
+                else if(data.date_str) dDate = new Date(data.date_str);
+
+                if(dDate && dDate.getFullYear() === currentYear && dDate.getMonth() === currentMonth) {
+                    thisMonthDiaries.push(data);
+                }
+            });
+            
+            console.log(`모드: ${isGuestMode ? 'Guest' : 'User'}, 로드된 일기: ${cachedDiaries.length}개`);
         }
 
         function openDetailModal(data, dateStr) {
@@ -2634,10 +2747,18 @@
             if(e.target === profileModal) profileModal.classList.remove('active');
         });
 
+        // [수정 완료] 로그인 상태 감지 및 데이터 로드 로직 (전체)
         auth.onAuthStateChanged(async (user) => {
             if (user) {
+                // ------------------------------------------------
+                // 1. 유저 접속 성공 (구글 로그인 상태)
+                // ------------------------------------------------
                 currentUser = user;
-                googleLoginBtn.style.display = 'none';
+                isGuestMode = false; // 구글 로그인이니 게스트 모드 해제
+
+                // 로그인 버튼들 숨기고 로그아웃 버튼 표시
+                document.getElementById('google-login-btn').style.display = 'none';
+                document.getElementById('guest-login-btn').style.display = 'none'; // ★ 게스트 버튼도 숨김
                 logoutBtn.style.display = 'block';
 
                 const userDocRef = db.collection('users').doc(user.uid);
@@ -2645,8 +2766,20 @@
 
                 if (userDoc.exists) {
                     const userData = userDoc.data();
+                    
+                    // [중요] 전역 변수에 유저 정보 저장
+                    globalUserData = userData; 
+                    globalUserRef = userDocRef;
+                    
+                    // 입장 버튼 표시 및 일기 데이터 로드
                     showEnterButton(userData.nickname);
                     await loadAllDiaries(user.uid);
+                    
+                    // 포인트(스탯) 적용
+                    if(userData.total_points) {
+                        currentPoints = { ...currentPoints, ...userData.total_points };
+                        applyPointsToWorld();
+                    }
 
                     // --- [월간 리포트 체크 및 실행 로직] ---
                     const now = new Date();
@@ -2655,12 +2788,10 @@
                     // DB에 저장된 마지막 리포트 달 (예: 2024-04)
                     const savedPeriod = userData.last_period || ""; 
                     
-                    // 로컬스토리지 키: 이번 달 알림을 이미 봤는지 체크용 (예: geulsup_prompt_seen_2024-05)
+                    // 로컬스토리지 키: 이번 달 알림을 이미 봤는지 체크용
                     const promptSeenKey = `geulsup_prompt_seen_${currentPeriod}`;
 
-                    // -----------------------------------------------------------
-                    // 1. [강제 실행] 역사관에서 "지금 만들기"를 누르고 넘어온 경우
-                    // -----------------------------------------------------------
+                    // 1) [강제 실행] 역사관에서 "지금 만들기"를 누르고 넘어온 경우
                     if (sessionStorage.getItem('forceSeasonReport') === 'true') {
                         sessionStorage.removeItem('forceSeasonReport');
                         
@@ -2677,24 +2808,17 @@
                         return;
                     }
 
-                    // -----------------------------------------------------------
-                    // 2. [자연 실행] 달이 바뀌어서 처음 안내창을 띄우는 경우
-                    // -----------------------------------------------------------
-                    // 조건: (DB상 과거 달임) AND (포인트 있음) AND (이번 달 알림을 아직 안 봄)
+                    // 2) [자연 실행] 달이 바뀌어서 처음 안내창을 띄우는 경우
+                    // 조건: (DB상 과거 달임) AND (이번 달 알림을 아직 안 봄)
                     if (savedPeriod && savedPeriod !== currentPeriod) {
                         
                         // 이미 "나중에"를 눌렀던 적이 있다면? -> 패스하고 조용히 정원 로드
                         if (localStorage.getItem(promptSeenKey) === 'true') {
-                            // 화면 갱신만 하고 끝
-                            if (userData.total_points) {
-                                currentPoints = { ...currentPoints, ...userData.total_points };
-                                applyPointsToWorld();
-                            }
                             // DB 업데이트는 하지 않음 (Archive에서 만들 때까지 last_period 유지)
                             return; 
                         }
 
-                        // 알림을 띄워야 하는 상황
+                        // 알림을 띄워야 하는 상황 (포인트가 있을 때만)
                         if (userData.total_points) {
                             const noticeModal = document.getElementById('season-notice-modal');
                             const btnNow = document.getElementById('btn-season-now');
@@ -2726,38 +2850,42 @@
                                     
                                     // 봤음 표시 저장 (다시 안 뜨게 -> 이제 Archive에서만 접근 가능)
                                     localStorage.setItem(promptSeenKey, 'true');
-                                    
-                                    // 현재 상태로 정원 이용
-                                    currentPoints = { ...currentPoints, ...userData.total_points };
-                                    applyPointsToWorld();
                                 };
                             }
                         } else {
                             // 포인트가 아예 없으면(활동 없는 달) 조용히 기간만 갱신
                             await userDocRef.update({ last_period: currentPeriod });
                         }
-                    } else {
-                        // 3. 평소 접속 (달이 같음)
-                        if (!userData.last_period) {
-                            await userDocRef.update({ last_period: currentPeriod });
-                        }
-                        if (userData.total_points) {
-                            currentPoints = { ...currentPoints, ...userData.total_points };
-                            applyPointsToWorld(); 
-                        }
+                    } 
+                    // 3) 평소 접속 (달이 같음 or DB에 기록 없음)
+                    else if (!userData.last_period) {
+                        await userDocRef.update({ last_period: currentPeriod });
                     }
 
                 } else {
-                    // 가입 정보 없음 -> 닉네임 설정
-                    nicknameModal.classList.add('active');
+                    // 회원가입 정보 없음 -> 닉네임 설정 모달 띄우기
+                    document.getElementById('nickname-modal').classList.add('active');
                 }
             } else {
-                // 로그아웃 상태
+                // ------------------------------------------------
+                // 2. 로그아웃 상태 (비회원)
+                // ------------------------------------------------
+                
+                // ★ [중요] 현재 게스트 모드로 사용 중이라면 UI를 초기화하지 않고 함수 종료
+                if (isGuestMode) return;
+
                 currentUser = null;
-                googleLoginBtn.style.display = 'flex';
+                
+                // 로그인 버튼들 다시 표시
+                document.getElementById('google-login-btn').style.display = 'flex';
+                document.getElementById('guest-login-btn').style.display = 'block'; // ★ 게스트 버튼 다시 표시
+                
+                // 입장/로그아웃 버튼 숨김
                 enterButton.style.display = 'none';
                 logoutBtn.style.display = 'none';
                 userGreeting.style.opacity = '0';
+                
+                // 데이터 초기화
                 cachedDiaries = [];
                 currentPoints = { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 };
             }
@@ -2783,35 +2911,63 @@
         }
 
         logoutBtn.addEventListener('click', () => {
-            if (confirm("정원에서 나가시겠습니까?")) {
-                auth.signOut().then(() => {
-                    console.log("로그아웃 완료");
-                    location.reload(); // 깔끔하게 페이지를 새로고침해서 초기화합니다.
-                }).catch((error) => {
-                    console.error("로그아웃 에러:", error);
-                });
+            const msg = isGuestMode 
+                ? "게스트 모드를 종료하시겠습니까?\n(데이터는 브라우저에 남습니다)" 
+                : "정원에서 나가시겠습니까?";
+
+            if (confirm(msg)) {
+                if (isGuestMode) {
+                    location.reload(); // 그냥 새로고침
+                } else {
+                    auth.signOut().then(() => location.reload());
+                }
             }
         });
 
-        // --- 5. 닉네임 제출 로직 ---
         nicknameSubmitBtn.addEventListener('click', async () => {
+            playSfx('sfx-click');
             const nickname = nicknameInput.value.trim();
+            
             if (nickname.length < 1) {
                 alert("이름을 한 글자 이상 입력해주세요.");
                 return;
             }
 
-            // DB에 유저 정보 저장 (회원가입 완료)
-            await db.collection('users').doc(currentUser.uid).set({
-                nickname: nickname,
-                email: currentUser.email,
-                createdAt: new Date(),
-                // 초기 포인트 설정
-                points: { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 }
-            });
+            if (isGuestMode) {
+                // 🟢 [A] 게스트 모드: 로컬 스토리지에 이름 저장
+                localStorage.setItem('geulsup_guest_nickname', nickname);
+                
+                // 게스트용 초기 포인트 설정 (없다면)
+                if (!localStorage.getItem('geulsup_guest_points')) {
+                     const initPoints = { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 };
+                     localStorage.setItem('geulsup_guest_points', JSON.stringify(initPoints));
+                     currentPoints = initPoints;
+                }
+                
+                document.getElementById('nickname-modal').classList.remove('active');
+                showEnterButton(nickname + " (Guest)");
 
-            nicknameModal.classList.remove('active'); // 모달 닫기
-            showEnterButton(nickname); // 입장 버튼 보이기
+            } else {
+                // 🔵 [B] 회원 모드: Firebase에 저장 (기존 로직)
+                try {
+                    await db.collection('users').doc(currentUser.uid).set({
+                        nickname: nickname,
+                        email: currentUser.email,
+                        createdAt: new Date(),
+                        points: { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 }
+                    });
+                    
+                    // 전역 변수 업데이트 (시즌 리포트 로직 등에서 사용됨)
+                    globalUserData = { nickname: nickname }; 
+                    globalUserRef = db.collection('users').doc(currentUser.uid);
+
+                    document.getElementById('nickname-modal').classList.remove('active');
+                    showEnterButton(nickname);
+                } catch (e) {
+                    console.error("닉네임 저장 실패:", e);
+                    alert("오류가 발생했습니다.");
+                }
+            }
         });
 
         // --- 6. 입장 버튼 활성화 함수 ---
@@ -3071,69 +3227,103 @@
             }
         });
 
-        // --- 5. [수정] 일기 제출 및 저장 로직 ---
+        // [수정] 일기 제출 및 저장 로직 (게스트/회원 분기 처리 포함)
         diarySubmitBtn.addEventListener('click', async () => {
             const text = diaryTextarea.value;
             
-            // 유효성 검사
+            // 1. 유효성 검사 (글자수 체크)
             if (text.length < 30 || text.length > 200) {
                 alert("일기는 30자 이상 200자 이하로 작성해주세요.");
                 return;
             }
 
+            // 2. 버튼 비활성화 및 로딩 표시
             diarySubmitBtn.disabled = true;
             diarySubmitBtn.innerText = "정원사가 읽는 중... 🌿";
             playSfx('sfx-click');
 
             try {
-                // 1. 서버(Render)에 분석 요청
+                // 3. [공통] AI 서버에 분석 요청 (게스트든 회원이든 AI 분석은 받아야 함)
                 const result = await realAnalyzeDiary(text);
-                currentLastResult = result; // 결과 모달용 저장
+                currentLastResult = result; // 결과 모달에서 보여주기 위해 저장
 
-                // 2. [핵심] Firestore에 일기 데이터 저장
-                // users -> (내 UID) -> diaries -> (자동생성ID) 문서 생성
-                await db.collection('users').doc(currentUser.uid).collection('diaries').add({
-                    content: text, // 내가 쓴 일기
-                    ai_reply: result.comment, // 정원사의 답장
-                    stat_increase: result.points, // 이번에 오른 점수들
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(), // 정확한 서버 시간
-                    date_str: new Date().toISOString().slice(0,10) // 검색용 날짜 문자열 (2024-05-21)
-                });
-
+                // 4. 저장할 일기 데이터 객체 만들기
                 const newDiaryObj = {
                     content: text,
                     ai_reply: result.comment,
                     stat_increase: result.points,
-                    timestamp: { toDate: () => new Date() }, // 로컬 표시용 가짜 타임스탬프
-                    date_str: new Date().toISOString().slice(0,10)
+                    date_str: new Date().toISOString().slice(0,10),
+                    // 게스트는 서버 기능인 serverTimestamp를 못 쓰므로 null로 둡니다.
+                    timestamp: isGuestMode ? null : firebase.firestore.FieldValue.serverTimestamp() 
                 };
-                
-                // [NEW] 바구니 맨 앞에 새 일기 추가 (새로고침 없이 즉시 반영)
-                cachedDiaries.unshift(newDiaryObj);
 
-                // 3. [핵심] 유저의 총 능력치(Total Points) 실시간 업데이트
-                const userRef = db.collection('users').doc(currentUser.uid);
-                
-                // 점수가 오른 항목만 골라서 기존 점수에 더하기(increment)
-                const updateData = {};
-                for (const [virtue, score] of Object.entries(result.points)) {
-                    if (score > 0) {
-                        // total_points.courage += 8 이런 식으로 작동함
-                        updateData[`total_points.${virtue}`] = firebase.firestore.FieldValue.increment(score);
+                // =========================================================
+                // 5. [핵심] 여기서 길이 갈라집니다! (게스트 vs 회원)
+                // =========================================================
+                if (isGuestMode) {
+                    // 🟢 [A] 게스트 모드: 브라우저(LocalStorage)에 저장
+                    
+                    // 5-A-1. 화면에 바로 보여주기 위해 캐시 목록 맨 앞에 추가
+                    // (timestamp 함수가 없으니 가짜 함수를 만들어 넣어줍니다)
+                    cachedDiaries.unshift({
+                        ...newDiaryObj,
+                        timestamp: { toDate: () => new Date() } 
+                    }); 
+                    
+                    // 5-A-2. 로컬스토리지에 저장 (문자열로 변환 필요)
+                    // Firestore 객체는 JSON 변환이 안 되므로 순수 데이터만 추립니다.
+                    const saveToLocal = cachedDiaries.map(d => {
+                         return {
+                             content: d.content,
+                             ai_reply: d.ai_reply,
+                             stat_increase: d.stat_increase,
+                             date_str: d.date_str
+                         };
+                    });
+                    // 'geulsup_guest_diaries' 라는 이름으로 서랍에 저장
+                    localStorage.setItem('geulsup_guest_diaries', JSON.stringify(saveToLocal));
+
+                    // 5-A-3. 포인트(스탯)도 로컬에 업데이트 & 저장
+                    for (const [virtue, score] of Object.entries(result.points)) {
+                        if (score > 0) currentPoints[virtue] += score;
                     }
+                    localStorage.setItem('geulsup_guest_points', JSON.stringify(currentPoints));
+
+                } else {
+                    // 🔵 [B] 회원 모드: Firebase 서버에 저장 (기존 방식)
+                    
+                    // 5-B-1. 서버 DB에 일기 저장
+                    await db.collection('users').doc(currentUser.uid).collection('diaries').add(newDiaryObj);
+                    
+                    // 5-B-2. 서버 DB에 포인트 합산 업데이트
+                    const userRef = db.collection('users').doc(currentUser.uid);
+                    const updateData = {};
+                    for (const [virtue, score] of Object.entries(result.points)) {
+                        if (score > 0) {
+                            updateData[`total_points.${virtue}`] = firebase.firestore.FieldValue.increment(score);
+                        }
+                    }
+                    await userRef.update(updateData);
+                    
+                    // 5-B-3. 화면 갱신용 캐시에 추가
+                    cachedDiaries.unshift({
+                        ...newDiaryObj,
+                        timestamp: { toDate: () => new Date() }
+                    });
                 }
-                
-                // 업데이트 실행 (만약 total_points 필드가 없으면 자동으로 생성됨)
-                await userRef.update(updateData);
+                // =========================================================
 
 
-                // --- 이하 연출 및 UI 업데이트 코드는 기존과 동일 ---
+                // 6. [공통] UI 업데이트 (결과창 띄우기, 입력창 비우기 등)
+                // (게스트든 회원이든 점수 오르는 연출은 똑같이 보여줍니다)
                 resultPointUpArea.innerHTML = '';
                 
                 virtues.forEach((v, index) => {
                     const p = result.points[v] || 0;
                     if (p > 0) {
-                        currentPoints[v] += p;
+                        // 게스트는 위에서 이미 currentPoints를 더했으므로 여기선 더하지 않음 (회원일 때만 주의)
+                        if (!isGuestMode) currentPoints[v] += p;
+
                         islandData[v].logs.unshift({ date: '방금 전', text: text });
                         
                         const badge = document.createElement('div');
@@ -3155,8 +3345,11 @@
                 diaryModal.classList.remove('active');
                 setTimeout(() => {
                     resultModal.classList.add('active');
-                    audioResult.volume = 0.6 * globalSFXVolume;
-                    audioResult.play().catch(e => console.warn("결과 효과음 로드 실패:", e));
+                    if(audioResult) {
+                        const resSound = audioResult.cloneNode();
+                        resSound.volume = 0.6 * globalSFXVolume;
+                        resSound.play().catch(()=>{});
+                    }
                 }, 500);
 
                 diaryTextarea.value = '';
@@ -3164,7 +3357,7 @@
 
             } catch (err) {
                 console.error(err);
-                alert("일기 기록 중 문제가 발생했습니다: " + err.message);
+                alert("일기 저장 중 오류가 발생했습니다: " + err.message);
             } finally {
                 diarySubmitBtn.disabled = false;
                 diarySubmitBtn.innerText = "나무 심기 (기록)";

@@ -404,6 +404,7 @@
         let globalSFXVolume = 0.5;
         let globalBGMVolume = 0.3;
         let isParallaxOn = true;
+        let isGuestMode = false;
 
         // --- 2. 설정 로드 (index.html과 데이터 키 통일) ---
         function loadSettings() {
@@ -437,13 +438,33 @@
         }
         loadSettings(); // 실행
 
-        // --- 3. [NEW] 통합 효과음 재생 함수 (index.html과 동일 방식) ---
-        function playSfx(audioElement, multiplier = 1.0) {
-            if (!audioElement) return;
-            const sound = audioElement.cloneNode();
-            // 전역 볼륨 * 개별 보정치
-            sound.volume = globalSFXVolume * multiplier; 
-            sound.play().catch(() => {});
+        function playSfx(input, multiplier = 1.0) {
+            let audioEl = input;
+
+            // 1. 만약 입력값이 문자열(ID)이라면 요소 찾기
+            if (typeof input === 'string') {
+                // 'click'만 넣어도 'sfx-click'을 찾도록 편의성 추가 (선택사항)
+                if(!input.startsWith('sfx-') && !input.startsWith('bgm-')) {
+                    audioEl = document.getElementById('sfx-' + input); 
+                } else {
+                    audioEl = document.getElementById(input);
+                }
+            }
+
+            // 2. 요소가 없으면 종료 (에러 방지)
+            if (!audioEl) {
+                console.warn("오디오를 찾을 수 없음:", input);
+                return;
+            }
+
+            // 3. 재생 (cloneNode 사용)
+            try {
+                const sound = audioEl.cloneNode();
+                sound.volume = globalSFXVolume * multiplier; 
+                sound.play().catch(() => {});
+            } catch (e) {
+                console.error("재생 오류:", e);
+            }
         }
 
         // --- 4. 비주얼 (파티클, 별) ---
@@ -603,9 +624,28 @@
             });
         }
 
+        // [수정] 로그인 상태 감지 (게스트 허용 로직 추가)
         auth.onAuthStateChanged(async (user) => {
-            if (user) await loadData(user.uid);
-            else { alert("로그인 정보가 없습니다."); window.location.href = 'index.html'; }
+            if (user) {
+                // 1. 구글 로그인 회원인 경우
+                isGuestMode = false;
+                await loadData(user.uid);
+            } else {
+                // 2. 로그인이 안 된 경우 -> 게스트인지 확인
+                // index.html에서 저장한 게스트 데이터가 있는지 체크
+                const guestData = localStorage.getItem('geulsup_guest_diaries');
+                
+                if (guestData) {
+                    // 게스트 데이터가 있으면 => 게스트 모드로 진입
+                    console.log("게스트 모드로 역사관 진입");
+                    isGuestMode = true;
+                    await loadData('guest');
+                } else {
+                    // 게스트 데이터도 없고 로그인도 안 함 => 쫓아냄
+                    alert("로그인 정보가 없습니다.");
+                    window.location.href = 'index.html';
+                }
+            }
         });
 
         function updateBookPosition() {
@@ -613,19 +653,41 @@
             else els.realBook.classList.remove('is-open'); 
         }
 
+        // [수정] 데이터 로드 함수
         async function loadData(uid) {
             try {
-                // 1. 유저 정보
-                const userDoc = await db.collection('users').doc(uid).get();
-                const userData = userDoc.data();
-                
-                // 2. 일기 전수 조사 (스탯 계산 + 개수 세기)
-                const diarySnapshot = await db.collection('users').doc(uid).collection('diaries').get();
+                let diaryList = [];
+                let archiveMap = {}; // 게스트는 아카이브 저장 데이터가 없으므로 빈 객체 사용
+
+                if (isGuestMode) {
+                    // [Guest] 로컬스토리지에서 가져오기
+                    const localData = localStorage.getItem('geulsup_guest_diaries');
+                    if (localData) {
+                        diaryList = JSON.parse(localData);
+                        // 타임스탬프 복원
+                        diaryList.forEach(d => {
+                            d.timestamp = { toDate: () => new Date(d.date_str) };
+                        });
+                    }
+                } else {
+                    // [Member] Firebase에서 유저 정보 및 일기/아카이브 가져오기
+                    // (유저 닉네임 로드는 여기선 굳이 필요 없지만 원본 유지)
+                    const userDoc = await db.collection('users').doc(uid).get();
+                    
+                    const diarySnapshot = await db.collection('users').doc(uid).collection('diaries').get();
+                    diarySnapshot.forEach(doc => diaryList.push(doc.data()));
+
+                    const archiveSnapshot = await db.collection('users').doc(uid).collection('archives').get();
+                    archiveSnapshot.forEach(doc => {
+                        archiveMap[doc.id] = doc.data();
+                    });
+                }
+
+                // --- 여기부터는 공통 로직 (월별 통계 계산) ---
                 const calculatedStats = {}; 
                 const diaryCounts = {}; 
 
-                diarySnapshot.forEach(doc => {
-                    const d = doc.data();
+                diaryList.forEach(d => {
                     let dDate = null;
                     if(d.timestamp && typeof d.timestamp.toDate === 'function') dDate = d.timestamp.toDate();
                     else if(d.date_str) dDate = new Date(d.date_str);
@@ -648,19 +710,12 @@
                     }
                 });
 
-                // 3. 아카이브 가져오기
-                const archiveSnapshot = await db.collection('users').doc(uid).collection('archives').get();
-                const archiveMap = {};
-                archiveSnapshot.forEach(doc => {
-                    archiveMap[doc.id] = doc.data();
-                });
-
                 archiveList = [];
                 const now = new Date();
                 const startDate = new Date('2024-01-01'); 
                 let loopDate = new Date(now.getFullYear(), now.getMonth(), 1); 
 
-                // 4. 달력 루프
+                // 달력 루프 (현재 달부터 과거로)
                 while (loopDate >= startDate) {
                     const y = loopDate.getFullYear();
                     const m = String(loopDate.getMonth() + 1).padStart(2, '0');
@@ -670,10 +725,12 @@
                     let summary = null;
                     let count = diaryCounts[id] || 0; 
 
+                    // 아카이브(저장된 월말정산)가 있으면 그걸 우선 사용
                     if (archiveMap[id]) {
                         if (archiveMap[id].points) points = archiveMap[id].points;
                         if (archiveMap[id].summary) summary = archiveMap[id].summary;
                     } else if (calculatedStats[id]) {
+                        // 없으면 일기에서 계산된 통계 사용
                         points = calculatedStats[id];
                     }
 
@@ -687,6 +744,7 @@
                     loopDate.setMonth(loopDate.getMonth() - 1);
                 }
 
+                // 아직 데이터가 하나도 없을 때 현재 달 기본 추가
                 if (archiveList.length === 0) {
                     const m = String(now.getMonth() + 1).padStart(2, '0');
                     archiveList.push({
@@ -703,6 +761,7 @@
             } catch (e) {
                 console.error(e);
                 alert("데이터 로드 오류: " + e.message);
+                window.location.href = 'index.html'; // 오류 시 안전하게 복귀
             }
         }
 
@@ -861,8 +920,9 @@
         let currentBookPage = 0;
         let totalBookPages = 0;
 
+        // [수정] 3D 일기장 데이터 로드 함수
         async function openDiaryBook() {
-            playSfx(audioClick);
+            playSfx('sfx-click');
             const data = archiveList[currentIndex];
             const [y, m] = data.id.split('-');
             
@@ -873,18 +933,31 @@
             for(let i=1; i<pages.length; i++) pages[i].remove();
 
             try {
+                let diaries = [];
                 const startStr = `${y}-${m}-01`;
                 const lastDay = new Date(y, m, 0).getDate();
                 const endStr = `${y}-${m}-${lastDay}`;
 
-                const snapshot = await db.collection('users').doc(auth.currentUser.uid).collection('diaries')
-                    .where('date_str', '>=', startStr).where('date_str', '<=', endStr)
-                    .orderBy('date_str', 'asc')
-                    .get();
+                if (isGuestMode) {
+                    // [Guest] 로컬 데이터에서 날짜 필터링
+                    const localData = localStorage.getItem('geulsup_guest_diaries');
+                    if (localData) {
+                        const allDiaries = JSON.parse(localData);
+                        // 날짜 오름차순 정렬 및 범위 필터링
+                        diaries = allDiaries
+                            .filter(d => d.date_str >= startStr && d.date_str <= endStr)
+                            .sort((a, b) => a.date_str.localeCompare(b.date_str));
+                    }
+                } else {
+                    // [Member] Firebase 쿼리 (기존 방식)
+                    const snapshot = await db.collection('users').doc(auth.currentUser.uid).collection('diaries')
+                        .where('date_str', '>=', startStr).where('date_str', '<=', endStr)
+                        .orderBy('date_str', 'asc')
+                        .get();
+                    snapshot.forEach(doc => diaries.push(doc.data()));
+                }
 
-                const diaries = [];
-                snapshot.forEach(doc => diaries.push(doc.data()));
-
+                // [공통] 책 페이지 생성
                 if(diaries.length === 0) {
                     addSheet("기록 없음", "이 달에는 남겨진 이야기가 없습니다.", null, "", "", null);
                 } else {
