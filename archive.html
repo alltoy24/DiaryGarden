@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>글숲 - 기억의 서고 (Archives)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* [1. 기본 설정] */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; cursor: default; }
+        body { 
+            background-color: #050505; 
+            overflow: hidden; 
+            width: 100vw; height: 100vh; 
+            font-family: 'Nanum Myeongjo', serif;
+            color: #fff;
+        }
+
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+
+        /* [2. 트랜지션 레이어] */
+        #page-transition {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #page-transition.fade-out { opacity: 0; pointer-events: none; }
+
+        .ancient-symbol { width: 60px; height: 80px; position: relative; margin-bottom: 30px; perspective: 600px; }
+        .book-cover {
+            width: 100%; height: 100%; border: 2px solid #d4af37; border-radius: 2px 6px 6px 2px;
+            background: rgba(212, 175, 55, 0.05); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+            position: absolute; animation: bookPulse 2.5s infinite ease-in-out;
+        }
+        .book-page {
+            width: 90%; height: 94%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            position: absolute; top: 3%; left: 5%; opacity: 0.3; animation: pageShine 3s infinite linear;
+        }
+        @keyframes bookPulse {
+            0%, 100% { transform: rotateY(0deg); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); border-color: #d4af37; }
+            50% { transform: rotateY(-15deg); box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); border-color: #fff; }
+        }
+        @keyframes pageShine { 0% { transform: translateX(-10px); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: translateX(10px); opacity: 0; } }
+
+        /* [3. 배경 (Memory Void)] */
+        #world-container { position: fixed; width: 100%; height: 100%; z-index: 0; }
+        #void-bg { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at 50% 120%, #1a0b2e 0%, #000000 60%); }
+        #fog-layer { position: absolute; bottom: 0; left: 0; width: 100%; height: 50%; background: linear-gradient(to top, rgba(100, 80, 255, 0.1) 0%, transparent 100%); filter: blur(20px); z-index: 1; }
+        #dust-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; opacity: 0.6; }
+
+        /* [4. 중앙 무대 (섬)] */
+        #stage-container {
+            position: absolute; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            perspective: 1000px; z-index: 10; overflow: hidden;
+        }
+        #stage-inner {
+            position: relative; width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .island-obj {
+            position: absolute; width: 140px; 
+            transition: opacity 0.5s ease, filter 0.3s ease; 
+            filter: drop-shadow(0 30px 50px rgba(0,0,0,0.8));
+            cursor: pointer; will-change: transform;
+        }
+        .island-obj img { width: 100%; height: auto; animation: float 6s ease-in-out infinite; }
+        .island-obj:hover img { transform: scale(1.1); filter: brightness(1.2); }
+
+        #isl-wisdom { top: 40%; left: 35%; z-index: 5; }
+        #isl-serenity { top: 40%; left: 65%; z-index: 5; }
+        #isl-courage { top: 55%; left: 30%; width: 160px; z-index: 10; }
+        #isl-diligence { top: 55%; left: 70%; width: 160px; z-index: 10; }
+        #isl-kindness { top: 65%; left: 50%; width: 180px; z-index: 20; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        /* [5. UI: 네비게이션] */
+        .header-ui { position: absolute; top: 60px; width: 100%; z-index: 100; display: flex; justify-content: center; align-items: center; gap: 60px; }
+        .date-display { text-align: center; color: #d4af37; text-shadow: 0 0 30px rgba(212,175,55,0.4); }
+        #disp-year { font-family: 'Cinzel'; font-size: 1.2rem; letter-spacing: 0.5rem; color: #888; display: block; margin-bottom: 5px; }
+        #disp-month { font-family: 'Cinzel'; font-size: 5rem; margin: 0; letter-spacing: 0.5rem; line-height: 1; background: linear-gradient(to bottom, #fff, #999); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            width: 60px; height: 60px; border-radius: 50%; color: #aaa; font-size: 1.5rem;
+            cursor: pointer; transition: 0.4s; backdrop-filter: blur(5px);
+        }
+        .nav-btn:hover:not(:disabled) { border-color: #d4af37; color: #d4af37; transform: scale(1.15); background: rgba(212, 175, 55, 0.1); box-shadow: 0 0 20px rgba(212,175,55,0.3); }
+        .nav-btn:disabled { opacity: 0.1; cursor: default; transform: none; }
+
+        /* [6. 스탯 패널] */
+        #stats-toggle-btn {
+            position: absolute; bottom: 50px; left: 50px; z-index: 200; width: 70px; height: 70px;
+            background: rgba(10, 10, 15, 0.8); border: 2px solid #d4af37; border-radius: 50%;
+            color: #d4af37; font-size: 1.8rem; cursor: pointer; box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); display: flex; justify-content: center; align-items: center;
+        }
+        #stats-toggle-btn:hover { transform: scale(1.1) rotate(15deg); box-shadow: 0 0 50px rgba(212, 175, 55, 0.5); }
+        #stats-toggle-btn.hidden { transform: scale(0) rotate(-180deg); opacity: 0; pointer-events: none; }
+
+        #stats-panel {
+            position: absolute; bottom: 50px; left: 50px; z-index: 190; width: 380px; padding: 40px 30px;
+            background: linear-gradient(135deg, rgba(20, 20, 25, 0.95), rgba(5, 5, 8, 0.98));
+            border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 20px 20px 20px 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8); backdrop-filter: blur(15px);
+            transform-origin: bottom left; transform: scale(0) translate(-50px, 50px); opacity: 0; pointer-events: none;
+            transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease;
+        }
+        #stats-panel.active { transform: scale(1) translate(0, 0); opacity: 1; pointer-events: auto; }
+
+        .panel-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .panel-title { font-family: 'Cinzel'; font-size: 1rem; color: #d4af37; letter-spacing: 0.1rem; }
+        .close-panel-btn { background: transparent; border: none; color: #666; font-size: 1.2rem; cursor: pointer; transition: 0.3s; }
+        .close-panel-btn:hover { color: #fff; transform: rotate(90deg); }
+
+        .stat-row { display: flex; align-items: center; margin-bottom: 15px; }
+        .stat-icon { width: 30px; font-size: 1.2rem; text-align: center; margin-right: 10px; }
+        .stat-name { width: 80px; font-family: 'Cinzel'; font-size: 0.75rem; color: #aaa; }
+        .stat-track { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; position: relative; }
+        .stat-fill { height: 100%; width: 0%; border-radius: 3px; transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1); position: relative; }
+        .stat-fill::after { content: ''; position: absolute; top: 0; right: 0; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); animation: shine 2s infinite; }
+        .stat-val { width: 40px; text-align: right; font-family: 'Cinzel'; font-weight: bold; font-size: 0.9rem; color: #fff; }
+        @keyframes shine { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* [7. 리포트 모달] */
+        #report-btn {
+            position: absolute; bottom: 50px; right: 50px; z-index: 200;
+            background: transparent; border: 1px solid #d4af37; color: #d4af37; font-family: 'Cinzel'; font-size: 1rem; letter-spacing: 0.2rem;
+            padding: 15px 40px; cursor: pointer; transition: all 0.4s ease; display: flex; align-items: center; gap: 15px; backdrop-filter: blur(5px);
+        }
+        #report-btn:hover { background: #d4af37; color: #000; box-shadow: 0 0 40px rgba(212, 175, 55, 0.4); transform: translateY(-5px); }
+        #report-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: #555; color: #555; }
+
+        #report-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+            z-index: 300; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: all 0.5s ease;
+        }
+        #report-modal.active { opacity: 1; visibility: visible; }
+
+        .report-paper {
+            width: 700px; max-height: 85vh; background: linear-gradient(145deg, #15151a, #0a0a0f); border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 60px; position: relative; box-shadow: 0 0 100px rgba(0,0,0,0.9); transform: scale(0.9) translateY(30px);
+            transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1); overflow-y: auto;
+        }
+        #report-modal.active .report-paper { transform: scale(1) translateY(0); }
+
+        .report-title { font-family: 'Cinzel'; color: #d4af37; font-size: 2rem; text-align: center; margin-bottom: 40px; letter-spacing: 0.5rem; text-shadow: 0 0 20px rgba(212,175,55,0.3); }
+        .report-section { margin-bottom: 40px; border-left: 2px solid rgba(212,175,55,0.2); padding-left: 20px; }
+        .sec-head { font-family: 'Cinzel'; color: #888; font-size: 0.9rem; letter-spacing: 0.2rem; margin-bottom: 15px; }
+        .persona-text { font-size: 1.2rem; line-height: 1.8; color: #eee; margin-bottom: 10px; font-style: italic; }
+        
+        .virtue-group { margin-bottom: 25px; }
+        .virtue-title { font-family: 'Cinzel'; font-size: 0.9rem; color: var(--v-color); letter-spacing: 0.2rem; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; display: inline-block; }
+        .quote-item { margin-bottom: 10px; display: flex; flex-direction: column; }
+        .q-date { font-family: 'Cinzel'; font-size: 0.7rem; color: #666; margin-bottom: 3px; }
+        .q-text { font-size: 1rem; color: #ccc; line-height: 1.6; }
+
+        .close-report-x { position: absolute; top: 30px; right: 30px; font-size: 1.5rem; color: #555; cursor: pointer; transition: 0.3s; }
+        .close-report-x:hover { color: #d4af37; transform: rotate(90deg); }
+
+        /* [8. 3D 일기장 버튼 & 모달] */
+        #diary-book-btn {
+            position: absolute; bottom: 50px; right: 330px; /* 리포트 버튼(50+width)과 겹치지 않게 */
+            z-index: 200;
+            background: transparent; border: 1px solid #d4af37; color: #d4af37;
+            font-family: 'Cinzel'; font-size: 1rem; letter-spacing: 0.2rem;
+            padding: 15px 30px; cursor: pointer; transition: all 0.4s ease;
+            display: flex; align-items: center; gap: 10px; backdrop-filter: blur(5px);
+        }
+        #diary-book-btn:hover { background: #d4af37; color: #000; box-shadow: 0 0 40px rgba(212, 175, 55, 0.4); transform: translateY(-5px); }
+
+        #diary-book-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 400;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0; visibility: hidden; transition: all 0.5s ease;
+            perspective: 2500px; /* 원근감 */
+        }
+        #diary-book-modal.active { opacity: 1; visibility: visible; }
+
+        .close-book-x { position: absolute; top: 30px; right: 40px; font-size: 2rem; color: #888; cursor: pointer; z-index: 500; transition: 0.3s; }
+        .close-book-x:hover { color: #d4af37; transform: rotate(90deg); }
+
+        .book-scene { width: 700px; height: 500px; position: relative; }
+        .book { 
+            width: 100%; height: 100%; 
+            position: relative; 
+            transform-style: preserve-3d;
+            /* 책 위치 이동을 위한 부드러운 전환 */
+            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1); 
+        }
+
+        /* [핵심] 책이 펼쳐졌을 때 오른쪽으로 이동 (PC만) */
+        @media screen and (min-width: 769px) {
+            .book.is-open { transform: translateX(50%); }
+        }
+
+        /* 종이 (양면) */
+        .paper {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            transform-origin: left center; /* 책등 기준 회전 */
+            transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1); /* 묵직하게 넘어가는 느낌 */
+            transform-style: preserve-3d;
+            border-radius: 5px 15px 15px 5px; /* 종이 끝 살짝 둥글게 */
+        }
+        .paper.flipped { transform: rotateY(-180deg); }
+
+        /* 앞면 (오른쪽 페이지) */
+        .front {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            background: linear-gradient(to right, #e3d2b4, #fff9e6 15%, #fff9e6 95%, #e3d2b4 100%); /* 입체적 질감 */
+            color: #333; padding: 40px; box-sizing: border-box;
+            backface-visibility: hidden; z-index: 2;
+            border-right: 1px solid #ccc;
+            box-shadow: inset 5px 0 10px rgba(0,0,0,0.05); /* 책등 그림자 */
+            display: flex; flex-direction: column;
+        }
+        
+        /* 뒷면 (왼쪽 페이지 - 넘어갔을 때 보임) */
+        .back { 
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            background: linear-gradient(to left, #e3d2b4, #fff9e6 15%, #fff9e6 95%, #e3d2b4 100%);
+            color: #333; padding: 40px; box-sizing: border-box;
+            backface-visibility: hidden; z-index: 1;
+            transform: rotateY(180deg); /* 뒤집힘 */
+            border-left: 1px solid #ccc;
+            box-shadow: inset -5px 0 10px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column;
+        }
+
+        /* 표지 */
+        .cover-page {
+            background: linear-gradient(135deg, #1a0b2e, #000); /* 서고 테마 */
+            border: 2px solid #d4af37; color: #d4af37;
+            text-align: center; justify-content: center;
+        }
+        .cover-page h1 { font-family: 'Cinzel'; font-size: 3.5rem; margin-bottom: 20px; }
+        .instruction { font-family: 'Nanum Myeongjo'; font-size: 0.8rem; opacity: 0.7; margin-top: 50px; }
+
+        /* 내지 디자인 */
+        .d-date-title { 
+            font-family: 'Cinzel'; font-size: 1.1rem; color: #8b5e3c; 
+            border-bottom: 1px solid #d4af37; padding-bottom: 10px; margin-bottom: 20px; text-align: right; 
+        }
+        .d-content-text { 
+            font-family: 'Nanum Myeongjo'; font-size: 1.05rem; line-height: 1.8; 
+            color: #444; white-space: pre-wrap; flex: 1; overflow-y: auto; 
+            scrollbar-width: none; 
+        }
+        .d-content-text::-webkit-scrollbar { display: none; }
+        
+        .d-reply-box { 
+            margin-top: 15px; padding: 15px; 
+            background: rgba(139, 94, 60, 0.08); 
+            border-radius: 5px; font-size: 0.9rem; color: #665; font-style: italic; 
+        }
+
+        .book-controls { margin-top: 30px; display: flex; gap: 20px; align-items: center; }
+        .book-controls button { background: transparent; border: 1px solid #666; color: #888; padding: 5px 15px; cursor: pointer; transition: 0.3s; font-family: 'Cinzel'; }
+        .book-controls button:hover { border-color: #d4af37; color: #d4af37; }
+        #book-pagination { font-family: 'Cinzel'; color: #666; }
+
+        /* [9. 나가기 버튼] */
+        #return-btn {
+            position: absolute; top: 40px; right: 40px; z-index: 200; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.4); color: #d4af37;
+            padding: 12px 30px; font-family: 'Cinzel'; font-size: 0.9rem; letter-spacing: 0.1rem; cursor: pointer; transition: all 0.4s ease; display: flex; align-items: center; gap: 10px; backdrop-filter: blur(5px);
+        }
+        #return-btn:hover { background: #d4af37; color: #000; box-shadow: 0 0 30px rgba(212, 175, 55, 0.6); transform: translateY(-3px); }
+
+        .slide-out-left { transform: translateX(-200px) rotateY(-20deg); opacity: 0; }
+        .slide-out-right { transform: translateX(200px) rotateY(20deg); opacity: 0; }
+        .slide-in { animation: popIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9) translateY(30px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        @media screen and (max-width: 768px) {
+            .header-ui { top: 30px; gap: 20px; }
+            #disp-month { font-size: 3rem; }
+            .island-obj { transform: translate(-50%, -50%) scale(0.6); }
+            #stats-panel { bottom: 20px; left: 5%; width: 90%; }
+            #stats-toggle-btn { bottom: 20px; left: 20px; width: 60px; height: 60px; }
+            #report-btn { bottom: 100px; right: 20px; font-size: 0.8rem; padding: 10px 20px; }
+            #diary-book-btn { bottom: 160px; right: 20px; font-size: 0.8rem; padding: 10px 20px; width: auto; }
+            .report-paper { width: 90%; padding: 30px; }
+            .book-scene { width: 90vw; height: 60vh; }
+            .front, .back { padding: 20px; }
+        }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <audio id="sfx-hover" src="SFX/hover.mp3"></audio>
+    <audio id="sfx-click" src="SFX/click.mp3"></audio>
+    <audio id="sfx-page" src="SFX/page_flip.mp3"></audio>
+    <audio id="bgm-archive" src="SFX/archive_bgm.mp3" loop></audio>
+
+    <div id="world-container">
+        <div id="void-bg"></div>
+        <div id="stars-container"></div>
+        <div id="fog-layer"></div>
+        <canvas id="dust-canvas"></canvas>
+    </div>
+
+    <div id="page-transition">
+        <div class="ancient-symbol"><div class="book-cover"></div><div class="book-page"></div></div>
+        <div style="margin-top:20px; color:#d4af37; font-family:'Nanum Myeongjo'; font-size:1.1rem; letter-spacing: 0.2rem; text-shadow: 0 0 10px rgba(212,175,55,0.5);">기억의 심연을 건너는 중...</div>
+    </div>
+
+    <div id="stage-container">
+        <div id="stage-inner">
+            <div id="isl-wisdom" class="island-obj" data-base-x="35" data-base-y="40" data-depth="0.02"><img src="images/island_wisdom_1.png"></div>
+            <div id="isl-courage" class="island-obj" data-base-x="30" data-base-y="55" data-depth="0.04"><img src="images/island_courage_1.png"></div>
+            <div id="isl-kindness" class="island-obj" data-base-x="50" data-base-y="65" data-depth="0.06"><img src="images/island_kindness_1.png"></div>
+            <div id="isl-diligence" class="island-obj" data-base-x="70" data-base-y="55" data-depth="0.04"><img src="images/island_diligence_1.png"></div>
+            <div id="isl-serenity" class="island-obj" data-base-x="65" data-base-y="40" data-depth="0.02"><img src="images/island_serenity_1.png"></div>
+        </div>
+    </div>
+
+    <div class="header-ui">
+        <button class="nav-btn" id="btn-prev">❮</button>
+        <div class="date-display"><span id="disp-year">----</span><h1 id="disp-month">LOADING</h1></div>
+        <button class="nav-btn" id="btn-next">❯</button>
+    </div>
+
+    <div id="stats-toggle-btn">📊</div>
+    <div id="stats-panel">
+        <div class="panel-header-row"><span class="panel-title">ARCHIVED GROWTH</span><button class="close-panel-btn">✕</button></div>
+        <div id="stats-list-container"></div>
+        <div style="margin-top:20px; font-size:0.8rem; color:#666; text-align:center;">* 이 달에 수확한 마음의 양분입니다.</div>
+    </div>
+
+    <button id="diary-book-btn"><span>📖 OPEN DIARY</span></button>
+
+    <div id="diary-book-modal">
+        <span class="close-book-x">✕</span>
+        <div class="book-scene">
+            <div class="book" id="real-book">
+                <div class="paper" style="z-index: 100;">
+                    <div class="front cover-page">
+                        <h1>DIARY</h1>
+                        <p id="book-cover-date">2024 . 05</p>
+                        <span class="instruction">Click to flip</span>
+                    </div>
+                    <div class="back">
+                        <div style="display:flex; justify-content:center; align-items:center; height:100%; opacity:0.1; font-family:'Cinzel'; font-size:2rem;">GEULSEUP</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="book-controls">
+            <button id="book-prev">Prev</button>
+            <span id="book-pagination">Cover</span>
+            <button id="book-next">Next</button>
+        </div>
+    </div>
+
+    <button id="report-btn"><span>📜 READ MEMORY</span></button>
+
+    <div id="report-modal">
+        <div class="report-paper">
+            <span class="close-report-x">✕</span>
+            <h2 class="report-title" id="rpt-title">MAY 2024</h2>
+            <div class="report-section"><div class="sec-head">THE PERSONA</div><div id="rpt-persona-box"></div></div>
+            <div class="report-section"><div class="sec-head">VOICES OF VIRTUES</div><div id="rpt-quotes-box"></div></div>
+        </div>
+    </div>
+
+    <button id="return-btn"><span>RETURN TO GARDEN</span></button>
+
+    <div id="current-month-notice" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:500; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transition:0.5s;">
+        <div style="width:400px; padding:40px; background:linear-gradient(145deg, #1a1a20, #0a0a0f); border:1px solid #d4af37; text-align:center; box-shadow: 0 0 50px rgba(0,0,0,1);">
+            <div style="font-family:'Cinzel'; color:#d4af37; font-size:0.8rem; letter-spacing:0.3rem; margin-bottom:20px;">IN PROGRESS</div>
+            <h3 style="font-family:'Nanum Myeongjo'; font-size:1.4rem; color:#fff; line-height:1.6; margin-bottom:30px;">이 달의 기억은<br>아직 엮어지는 중입니다.</h3>
+            <p style="font-family:'Nanum Myeongjo'; font-size:0.9rem; color:#888; margin-bottom:40px; line-height:1.8;">월간 리포트는 다음 달이 시작될 때<br>정원사가 정성껏 작성해 드립니다.</p>
+            <button id="close-notice-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:10px 30px; cursor:pointer; font-family:'Nanum Myeongjo'; transition:0.3s;">확인</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. 설정 및 오디오 로드 ---
+        const audioHover = document.getElementById('sfx-hover');
+        const audioClick = document.getElementById('sfx-click');
+        const audioPage = document.getElementById('sfx-page');
+        const audioBgm = document.getElementById('bgm-archive');
+
+        // 기본값 설정
+        let appSettings = { parallax: true, bgmVol: 0.3, sfxVol: 0.5, particle: 2, font: 'medium', theme: 'auto' };
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('geulsup_settings');
+                if(saved) { 
+                    const parsed = JSON.parse(saved);
+                    // 기존 설정에 덮어쓰기 (누락된 키 방지)
+                    appSettings = { ...appSettings, ...parsed };
+                    console.log("Settings Loaded:", appSettings);
+                }
+
+                // [핵심 수정] 볼륨 값이 숫자인지 확실하게 검사하고, 범위(0~1)를 벗어나지 않게 고정
+                // Number()로 변환하고, 만약 NaN이면 기본값 0.5 사용
+                const safeSfxVol = Number.isFinite(Number(appSettings.sfxVol)) ? Number(appSettings.sfxVol) : 0.5;
+                const safeBgmVol = Number.isFinite(Number(appSettings.bgmVol)) ? Number(appSettings.bgmVol) : 0.3;
+
+                // 0 ~ 1 사이로 강제 조정 (Clamp)
+                const finalSfxVol = Math.max(0, Math.min(1, safeSfxVol));
+                const finalBgmVol = Math.max(0, Math.min(1, safeBgmVol));
+
+                // 볼륨 적용
+                if(audioHover) audioHover.volume = Math.max(0, Math.min(1, finalSfxVol * 0.5)); // 호버는 절반 크기
+                if(audioClick) audioClick.volume = finalSfxVol;
+                if(audioPage) audioPage.volume = finalSfxVol;
+                
+                if(audioBgm) {
+                    audioBgm.volume = finalBgmVol;
+                    // BGM 자동 재생 시도
+                    const playPromise = audioBgm.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                            console.log("BGM 자동 재생 차단됨 (사용자 클릭 대기)");
+                            document.addEventListener('click', () => { 
+                                audioBgm.play(); 
+                            }, { once: true });
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("설정 로드 중 오류:", e);
+                // 오류 발생 시 로컬스토리지 초기화 (꼬인 데이터 삭제)
+                // localStorage.removeItem('geulsup_settings'); 
+            }
+        }
+        
+        // 페이지 로드 시 실행
+        loadSettings();
+
+        // 소리 재생 헬퍼 함수
+        function playSfx(type) {
+            let sound;
+            if (type === 'hover') sound = audioHover;
+            else if (type === 'click') sound = audioClick;
+            else if (type === 'page') sound = audioPage;
+
+            if (sound) {
+                sound.currentTime = 0;
+                // 파일이 없어서 에러나는 것을 방지하기 위해 catch 추가
+                sound.play().catch((e) => { 
+                    // console.warn("효과음 재생 실패:", e); 
+                });
+            }
+        }
+
+        // --- 2. 비주얼 (파티클, 별) ---
+        const canvas = document.getElementById('dust-canvas');
+        const ctx = canvas.getContext('2d');
+        const starsContainer = document.getElementById('stars-container');
+        let width, height;
+
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.addEventListener('resize', resize); resize();
+
+        function createStars() {
+            for(let i=0; i<80; i++) {
+                const s = document.createElement('div');
+                s.style.position = 'absolute'; s.style.background = '#fff'; s.style.borderRadius = '50%';
+                s.style.width = Math.random()*2 + 'px'; s.style.height = s.style.width;
+                s.style.left = Math.random()*100 + '%'; s.style.top = Math.random()*60 + '%';
+                s.style.opacity = Math.random()*0.5 + 0.1;
+                s.style.boxShadow = `0 0 ${Math.random()*5}px rgba(255,255,255,0.8)`;
+                starsContainer.appendChild(s);
+            }
+        }
+        createStars();
+
+        const particles = [];
+        class Mote {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * width; this.y = height + Math.random() * 200;
+                this.size = Math.random() * 3 + 1; this.speed = Math.random() * 0.5 + 0.2;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.y -= this.speed; this.opacity -= 0.001;
+                if(this.y < 0 || this.opacity <= 0) this.reset();
+            }
+            draw() {
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(200, 220, 255, ${this.opacity})`;
+                ctx.shadowBlur = 10; ctx.shadowColor = "rgba(200,220,255,0.5)";
+                ctx.fill(); ctx.shadowBlur = 0;
+            }
+        }
+        for(let i=0; i<60; i++) particles.push(new Mote());
+        function animate() {
+            ctx.clearRect(0,0,width,height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // --- 3. 파럴랙스 엔진 ---
+        let mouseX = 0, mouseY = 0, targetX = 0, targetY = 0;
+        const parallaxSens = 0.5;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX - width / 2) / (width / 2);
+            mouseY = (e.clientY - height / 2) / (height / 2);
+        });
+
+        function updateParallax() {
+            if(appSettings.parallax) {
+                targetX += (mouseX - targetX) * 0.05;
+                targetY += (mouseY - targetY) * 0.05;
+
+                const islands = document.querySelectorAll('.island-obj');
+                islands.forEach(obj => {
+                    const depth = parseFloat(obj.dataset.depth || 0.02);
+                    const bx = parseFloat(obj.dataset.baseX);
+                    const by = parseFloat(obj.dataset.baseY);
+                    
+                    const moveX = targetX * depth * width * -1 * parallaxSens;
+                    const moveY = targetY * depth * height * -1 * parallaxSens;
+
+                    obj.style.left = `${bx}%`; obj.style.top = `${by}%`;
+                    obj.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                });
+            }
+            requestAnimationFrame(updateParallax);
+        }
+        updateParallax();
+
+        // --- 4. 로직 & UI ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyANMznf6jeSLcLBPMZz7UrU7yf5YR3y18s",
+            authDomain: "geulsup.firebaseapp.com",
+            projectId: "geulsup",
+            storageBucket: "geulsup.firebasestorage.app",
+            messagingSenderId: "16178537421",
+            appId: "1:16178537421:web:f6cf9fbe1317809d721a84",
+            measurementId: "G-TQ6Z3SQKPM"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let archiveList = [];
+        let currentIndex = 0;
+        const virtueConfig = {
+            wisdom: { color: '#4db8ff', icon: '📘' },
+            courage: { color: '#ff6b6b', icon: '⚔️' },
+            kindness: { color: '#ff85a2', icon: '💖' },
+            diligence: { color: '#2ecc71', icon: '🌱' },
+            serenity: { color: '#81ecec', icon: '🌙' }
+        };
+
+        const closeNoticeBtn = document.getElementById('close-notice-btn');
+        if (closeNoticeBtn) {
+            closeNoticeBtn.addEventListener('click', () => {
+                playSfx('click');
+                const notice = document.getElementById('current-month-notice');
+                notice.style.opacity = '0';
+                setTimeout(() => { notice.style.visibility = 'hidden'; }, 500);
+            });
+        }
+
+        const els = {
+            year: document.getElementById('disp-year'),
+            month: document.getElementById('disp-month'),
+            stage: document.getElementById('stage-inner'),
+            prevBtn: document.getElementById('btn-prev'),
+            nextBtn: document.getElementById('btn-next'),
+            toggleBtn: document.getElementById('stats-toggle-btn'),
+            panel: document.getElementById('stats-panel'),
+            closePanel: document.querySelector('.close-panel-btn'),
+            statsList: document.getElementById('stats-list-container'),
+            transition: document.getElementById('page-transition'),
+            returnBtn: document.getElementById('return-btn'),
+            reportBtn: document.getElementById('report-btn'),
+            reportModal: document.getElementById('report-modal'),
+            closeReport: document.querySelector('.close-report-x'),
+            rptTitle: document.getElementById('rpt-title'),
+            rptPersona: document.getElementById('rpt-persona-box'),
+            rptQuotes: document.getElementById('rpt-quotes-box'),
+            
+            diaryBookBtn: document.getElementById('diary-book-btn'),
+            bookModal: document.getElementById('diary-book-modal'),
+            realBook: document.getElementById('real-book'),
+            closeBook: document.querySelector('.close-book-x'),
+            bookPrev: document.getElementById('book-prev'),
+            bookNext: document.getElementById('book-next'),
+            bookPagination: document.getElementById('book-pagination')
+        };
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) await loadData(user.uid);
+            else { alert("로그인 정보가 없습니다."); window.location.href = 'index.html'; }
+        });
+
+        // 책 위치 보정 함수 (표지면 중앙, 펼치면 오른쪽 이동)
+        function updateBookPosition() {
+            if (currentBookPage > 0) {
+                els.realBook.classList.add('is-open'); 
+            } else {
+                els.realBook.classList.remove('is-open'); 
+            }
+        }
+
+        async function loadData(uid) {
+            try {
+                // 1. 유저의 현재 실시간 데이터 가져오기
+                const userDoc = await db.collection('users').doc(uid).get();
+                const userData = userDoc.data();
+                
+                // 현재 연-월 계산
+                const now = new Date();
+                const currentId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+                // 2. 가상의 '이번 달' 데이터 생성
+                const currentMonthEntry = {
+                    id: currentId,
+                    points: userData.total_points || { wisdom:0, courage:0, kindness:0, diligence:0, serenity:0 },
+                    isCurrent: true // 이번 달임을 표시하는 플래그
+                };
+
+                // 3. 기존 보관함 데이터 가져오기
+                const snapshot = await db.collection('users').doc(uid).collection('archives').orderBy('archivedAt', 'desc').get();
+                
+                archiveList = [currentMonthEntry]; // 가상 데이터를 맨 앞에 넣고 시작
+                snapshot.forEach(doc => archiveList.push({ id: doc.id, ...doc.data() }));
+
+                // 렌더링 시작
+                renderPage(0, 'init');
+                
+                setTimeout(() => { els.transition.classList.add('fade-out'); }, 1000);
+            } catch (e) {
+                console.error(e);
+                alert("데이터 로드 오류");
+            }
+        }
+
+        function renderPage(idx, dir) {
+            const data = archiveList[idx];
+            const [y, m] = data.id.split('-');
+            
+            els.year.innerText = y;
+            els.month.innerText = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][parseInt(m)-1];
+
+            const stats = (data.summary && data.summary.stats) ? data.summary.stats : (data.points || {});
+            Object.keys(virtueConfig).forEach(key => {
+                const val = stats[key] || 0;
+                const lvl = getLevel(val);
+                const img = document.querySelector(`#isl-${key} img`);
+                img.style.opacity = "0";
+                setTimeout(() => {
+                    img.src = `images/island_${key}_${lvl}.png`;
+                    img.onload = () => { img.style.opacity = "1"; };
+                    img.onerror = () => { img.src = `images/island_${key}_1.png`; img.style.opacity = "1"; };
+                }, 300);
+            });
+
+            buildStats(stats);
+            if(data.isCurrent || data.summary) els.reportBtn.disabled = false;
+            else els.reportBtn.disabled = true;
+
+            if (dir !== 'init') {
+                els.stage.style.opacity = '0';
+                setTimeout(() => { els.stage.style.opacity = '1'; closeStats(); }, 400);
+            }
+
+            els.prevBtn.disabled = (idx >= archiveList.length - 1);
+            els.nextBtn.disabled = (idx <= 0);
+        }
+
+        function buildStats(stats) {
+            els.statsList.innerHTML = '';
+            const max = Math.max(...Object.values(stats), 10);
+            for (const [key, cfg] of Object.entries(virtueConfig)) {
+                const val = stats[key] || 0;
+                const pct = (val / max) * 100;
+                const div = document.createElement('div');
+                div.className = 'stat-row';
+                div.innerHTML = `
+                    <div class="stat-icon">${cfg.icon}</div>
+                    <div class="stat-name">${key.toUpperCase()}</div>
+                    <div class="stat-track"><div class="stat-fill" style="width:0%; background-color:${cfg.color}; box-shadow:0 0 10px ${cfg.color}"></div></div>
+                    <div class="stat-val" style="color:${cfg.color}">${val}</div>
+                `;
+                div.querySelector('.stat-fill').dataset.targetWidth = pct + '%';
+                els.statsList.appendChild(div);
+            }
+        }
+
+        function openStats() {
+            playSfx('click');
+            els.toggleBtn.classList.add('hidden'); els.panel.classList.add('active');
+            setTimeout(() => { document.querySelectorAll('.stat-fill').forEach(bar => { bar.style.width = bar.dataset.targetWidth; }); }, 300);
+        }
+        function closeStats() {
+            playSfx('click');
+            els.panel.classList.remove('active'); els.toggleBtn.classList.remove('hidden');
+            document.querySelectorAll('.stat-fill').forEach(bar => { bar.style.width = '0%'; });
+        }
+
+        function openReport() {
+            const data = archiveList[currentIndex];
+            
+            // [수정 1] 이번 달인지 먼저 체크해야 합니다!
+            if (data.isCurrent) {
+                playSfx('click');
+                const notice = document.getElementById('current-month-notice');
+                if (notice) {
+                    notice.style.visibility = 'visible';
+                    notice.style.opacity = '1';
+                }
+                return; // 안내창 띄웠으니 여기서 종료
+            }
+
+            // [수정 2] 이번 달이 아닐 때만 summary가 있는지 체크
+            if (!data.summary) return;
+
+            playSfx('click');
+            const [y, m] = data.id.split('-');
+            els.rptTitle.innerText = `${["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][parseInt(m)-1]} ${y}`;
+
+            els.rptPersona.innerHTML = '';
+            const personas = data.summary.persona || ["기록이 없습니다."];
+            personas.forEach(p => {
+                const div = document.createElement('div'); div.className = 'persona-text'; div.innerText = `"${p}"`;
+                els.rptPersona.appendChild(div);
+            });
+
+            els.rptQuotes.innerHTML = '';
+            const quotes = data.summary.quotes || {};
+            for(const [key, arr] of Object.entries(quotes)) {
+                if(Array.isArray(arr) && arr.length > 0) {
+                    const group = document.createElement('div'); group.className = 'virtue-group';
+                    group.innerHTML = `<div class="virtue-title" style="--v-color:${virtueConfig[key].color}">${key.toUpperCase()}</div>`;
+                    arr.forEach(item => {
+                        let text = "", dateStr = "Unknown Date";
+                        if(typeof item === 'object' && item !== null) {
+                            text = item.text || "";
+                            if(item.date) {
+                                const d = new Date(item.date);
+                                if(!isNaN(d)) dateStr = `${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getDate()).padStart(2,'0')}`;
+                                else dateStr = item.date;
+                            }
+                        } else { text = item; }
+                        const qDiv = document.createElement('div'); qDiv.className = 'quote-item';
+                        qDiv.innerHTML = `<span class="q-date">${dateStr}</span><span class="q-text">"${text}"</span>`;
+                        group.appendChild(qDiv);
+                    });
+                    els.rptQuotes.appendChild(group);
+                }
+            }
+            els.reportModal.classList.add('active');
+        }
+
+        // --- 3D 일기장 로직 ---
+        let currentBookPage = 0;
+        let totalBookPages = 0;
+
+        async function openDiaryBook() {
+            playSfx('click');
+            const data = archiveList[currentIndex];
+            const [y, m] = data.id.split('-');
+            
+            document.getElementById('book-cover-date').innerText = `${y} . ${m}`;
+            els.bookModal.classList.add('active');
+            
+            const pages = Array.from(els.realBook.children);
+            for(let i=1; i<pages.length; i++) pages[i].remove();
+
+            try {
+                const startStr = `${y}-${m}-01`;
+                const lastDay = new Date(y, m, 0).getDate();
+                const endStr = `${y}-${m}-${lastDay}`;
+
+                const snapshot = await db.collection('users').doc(auth.currentUser.uid).collection('diaries')
+                    .where('date_str', '>=', startStr).where('date_str', '<=', endStr)
+                    .orderBy('date_str', 'asc')
+                    .get();
+
+                const diaries = [];
+                snapshot.forEach(doc => diaries.push(doc.data()));
+
+                if(diaries.length === 0) {
+                    // 인자 개수 맞추기 (마지막에 null 하나 더 추가)
+                    addSheet("기록 없음", "이 달에는 남겨진 이야기가 없습니다.", null, "", "", null);
+                } else {
+                    for(let i=0; i<diaries.length; i+=2) {
+                        const d1 = diaries[i];
+                        const d2 = diaries[i+1] || null; 
+                        
+                        // d2.ai_reply를 마지막 인자로 추가
+                        addSheet(
+                            d1.date_str, d1.content, d1.ai_reply, 
+                            d2 ? d2.date_str : "", d2 ? d2.content : "", d2 ? d2.ai_reply : null
+                        );
+                    }
+                }
+                
+                currentBookPage = 0;
+                totalBookPages = els.realBook.children.length;
+                updateZIndex();
+                updatePagination();
+                updateBookPosition();
+
+            } catch (e) {
+                console.error(e);
+                alert("일기를 불러오는데 실패했습니다.");
+            }
+        }
+
+        function addSheet(date1, text1, reply1, date2, text2, reply2) {
+            const paper = document.createElement('div');
+            paper.className = 'paper';
+            
+            // Front (오른쪽 페이지 - Diary 1)
+            const front = document.createElement('div');
+            front.className = 'front';
+            front.innerHTML = `
+                <div class="d-date-title">${date1}</div>
+                <div class="d-content-text">${text1}</div>
+                ${reply1 ? `<div class="d-reply-box">🌿 ${reply1}</div>` : ''}
+            `;
+
+            // Back (왼쪽 페이지 - Diary 2)
+            const back = document.createElement('div');
+            back.className = 'back';
+            if (date2) {
+                back.innerHTML = `
+                    <div class="d-date-title">${date2}</div>
+                    <div class="d-content-text">${text2}</div>
+                    ${reply2 ? `<div class="d-reply-box">🌿 ${reply2}</div>` : ''} 
+                `; // 👈 이 부분에 reply2 로직 추가
+            } else {
+                back.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%; opacity:0.1; font-family:'Cinzel'; font-size:2rem;">GEULSEUP</div>`;
+            }
+
+            paper.appendChild(front);
+            paper.appendChild(back);
+            
+            paper.addEventListener('click', () => {
+                if(paper.classList.contains('flipped')) goPrevPage();
+                else goNextPage();
+            });
+
+            els.realBook.appendChild(paper);
+        }
+
+        function goNextPage() {
+            if(currentBookPage < totalBookPages - 1) {
+                playSfx('page'); // 책 넘기는 소리
+                els.realBook.children[currentBookPage].classList.add('flipped');
+                currentBookPage++;
+                updateZIndex();
+                updatePagination();
+                updateBookPosition();
+            }
+        }
+
+        function goPrevPage() {
+            if(currentBookPage > 0) {
+                playSfx('page'); // 책 넘기는 소리
+                currentBookPage--;
+                els.realBook.children[currentBookPage].classList.remove('flipped');
+                updateZIndex();
+                updatePagination();
+                updateBookPosition();
+            }
+        }
+
+        function updateZIndex() {
+            const papers = Array.from(els.realBook.children);
+            papers.forEach((p, i) => {
+                if (i < currentBookPage) p.style.zIndex = i; 
+                else p.style.zIndex = totalBookPages - i;
+            });
+        }
+
+        function updatePagination() {
+            els.bookPagination.innerText = currentBookPage === 0 ? "Cover" : `${currentBookPage} / ${totalBookPages - 1}`;
+        }
+
+        function getLevel(p) {
+            if(p<=15) return 1; if(p<=30) return 2; if(p<=45) return 3; if(p<=60) return 4;
+            if(p<=75) return 5; if(p<=90) return 6; if(p<=105) return 7; if(p<=125) return 8;
+            if(p<=150) return 9; return 10;
+        }
+
+        // 이벤트 리스너 등록 (클릭음 추가)
+        els.toggleBtn.addEventListener('click', openStats);
+        els.closePanel.addEventListener('click', closeStats);
+        els.reportBtn.addEventListener('click', openReport);
+        els.closeReport.addEventListener('click', () => { playSfx('click'); els.reportModal.classList.remove('active'); });
+        
+        els.diaryBookBtn.addEventListener('click', openDiaryBook);
+        els.closeBook.addEventListener('click', () => { playSfx('click'); els.bookModal.classList.remove('active'); });
+        els.bookNext.addEventListener('click', goNextPage);
+        els.bookPrev.addEventListener('click', goPrevPage);
+        
+        document.querySelector('.cover-page').parentElement.addEventListener('click', () => {
+             if(!document.querySelector('.cover-page').parentElement.classList.contains('flipped')) goNextPage();
+             else goPrevPage();
+        });
+
+        els.prevBtn.addEventListener('click', () => { playSfx('click'); if(currentIndex < archiveList.length - 1) { currentIndex++; renderPage(currentIndex, 'prev'); } });
+        els.nextBtn.addEventListener('click', () => { playSfx('click'); if(currentIndex > 0) { currentIndex--; renderPage(currentIndex, 'next'); } });
+        
+        els.returnBtn.addEventListener('click', () => {
+            playSfx('click');
+            sessionStorage.setItem('skipIntro', 'true'); 
+            els.transition.classList.remove('fade-out');
+            setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+        });
+
+        // 모든 인터랙티브 요소에 호버/클릭음 자동 적용
+        const interactiveElements = document.querySelectorAll('button, .nav-btn, #stats-toggle-btn, .close-book-x, .close-panel-btn, .close-report-x, .island-obj');
+        interactiveElements.forEach(el => {
+            el.addEventListener('mouseenter', () => playSfx('hover'));
+            if(el.tagName === 'BUTTON' || el.classList.contains('nav-btn')) {
+                // 상단에서 개별 리스너에 playSfx('click')을 넣었으므로, 여기선 호버만 처리
+                // (중복 재생 방지)
+            }
+        });
+    </script>
+</body>
+</html>
