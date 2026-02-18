@@ -192,7 +192,7 @@
         .close-book-x { position: absolute; top: 30px; right: 40px; font-size: 2rem; color: #888; cursor: pointer; z-index: 500; transition: 0.3s; }
         .close-book-x:hover { color: #d4af37; transform: rotate(90deg); }
 
-        .book-scene { width: 700px; height: 500px; position: relative; }
+        .book-scene { width: 500px; height: 550px; position: relative; }
         .book { 
             width: 100%; height: 100%; 
             position: relative; 
@@ -381,55 +381,49 @@
     <button id="return-btn"><span>RETURN TO GARDEN</span></button>
 
     <div id="current-month-notice" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); z-index:500; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transition:0.5s;">
-        <div style="width:400px; padding:40px; background:linear-gradient(145deg, #1a1a20, #0a0a0f); border:1px solid #d4af37; text-align:center; box-shadow: 0 0 50px rgba(0,0,0,1);">
-            <div style="font-family:'Cinzel'; color:#d4af37; font-size:0.8rem; letter-spacing:0.3rem; margin-bottom:20px;">IN PROGRESS</div>
-            <h3 style="font-family:'Nanum Myeongjo'; font-size:1.4rem; color:#fff; line-height:1.6; margin-bottom:30px;">이 달의 기억은<br>아직 엮어지는 중입니다.</h3>
-            <p style="font-family:'Nanum Myeongjo'; font-size:0.9rem; color:#888; margin-bottom:40px; line-height:1.8;">월간 리포트는 다음 달이 시작될 때<br>정원사가 정성껏 작성해 드립니다.</p>
-            <button id="close-notice-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:10px 30px; cursor:pointer; font-family:'Nanum Myeongjo'; transition:0.3s;">확인</button>
+        <div style="width:450px; padding:50px; background:linear-gradient(145deg, #1a1a20, #0a0a0f); border:1px solid #d4af37; text-align:center; box-shadow: 0 0 50px rgba(0,0,0,1);">
+            <div id="notice-subtitle" style="font-family:'Cinzel'; color:#d4af37; font-size:0.8rem; letter-spacing:0.3rem; margin-bottom:20px;">IN PROGRESS</div>
+            <h3 id="notice-title" style="font-family:'Nanum Myeongjo'; font-size:1.4rem; color:#fff; line-height:1.6; margin-bottom:30px;">이 달의 기억은<br>아직 엮어지는 중입니다.</h3>
+            <p id="notice-desc" style="font-family:'Nanum Myeongjo'; font-size:0.9rem; color:#888; margin-bottom:40px; line-height:1.8;">월간 리포트는 다음 달이 시작될 때<br>정원사가 정성껏 작성해 드립니다.</p>
+            
+            <div style="display:flex; justify-content:center; gap:10px;">
+                <button id="btn-notice-create" style="display:none; background:#d4af37; border:1px solid #d4af37; color:#000; padding:10px 25px; cursor:pointer; font-family:'Nanum Myeongjo'; font-weight:bold; transition:0.3s;">지금 만들기</button>
+                <button id="close-notice-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:10px 25px; cursor:pointer; font-family:'Nanum Myeongjo'; transition:0.3s;">확인</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // --- 1. 설정 및 오디오 로드 ---
+        // --- 1. 오디오 요소 가져오기 ---
         const audioHover = document.getElementById('sfx-hover');
         const audioClick = document.getElementById('sfx-click');
         const audioPage = document.getElementById('sfx-page');
         const audioBgm = document.getElementById('bgm-archive');
 
-        // 기본값 설정
-        let appSettings = { parallax: true, bgmVol: 0.3, sfxVol: 0.5, particle: 2, font: 'medium', theme: 'auto' };
+        // [중요] index.html과 변수명 통일 (기본값 설정)
+        let globalSFXVolume = 0.5;
+        let globalBGMVolume = 0.3;
+        let isParallaxOn = true;
 
+        // --- 2. 설정 로드 (index.html과 데이터 키 통일) ---
         function loadSettings() {
             try {
                 const saved = localStorage.getItem('geulsup_settings');
-                if(saved) { 
-                    const parsed = JSON.parse(saved);
-                    // 기존 설정에 덮어쓰기 (누락된 키 방지)
-                    appSettings = { ...appSettings, ...parsed };
-                    console.log("Settings Loaded:", appSettings);
+                if (saved) { 
+                    const s = JSON.parse(saved);
+                    // index.html에서 저장한 키(bgmVolume, sfxVolume)를 정확히 읽어옴
+                    globalBGMVolume = s.bgmVolume ?? 0.3;
+                    globalSFXVolume = s.sfxVolume ?? 0.5;
+                    isParallaxOn = s.parallax ?? true;
                 }
 
-                // [핵심 수정] 볼륨 값이 숫자인지 확실하게 검사하고, 범위(0~1)를 벗어나지 않게 고정
-                // Number()로 변환하고, 만약 NaN이면 기본값 0.5 사용
-                const safeSfxVol = Number.isFinite(Number(appSettings.sfxVol)) ? Number(appSettings.sfxVol) : 0.5;
-                const safeBgmVol = Number.isFinite(Number(appSettings.bgmVol)) ? Number(appSettings.bgmVol) : 0.3;
-
-                // 0 ~ 1 사이로 강제 조정 (Clamp)
-                const finalSfxVol = Math.max(0, Math.min(1, safeSfxVol));
-                const finalBgmVol = Math.max(0, Math.min(1, safeBgmVol));
-
-                // 볼륨 적용
-                if(audioHover) audioHover.volume = Math.max(0, Math.min(1, finalSfxVol * 0.5)); // 호버는 절반 크기
-                if(audioClick) audioClick.volume = finalSfxVol;
-                if(audioPage) audioPage.volume = finalSfxVol;
-                
-                if(audioBgm) {
-                    audioBgm.volume = finalBgmVol;
-                    // BGM 자동 재생 시도
+                // 배경음악 볼륨 즉시 적용
+                if (audioBgm) {
+                    audioBgm.volume = globalBGMVolume;
                     const playPromise = audioBgm.play();
                     if (playPromise !== undefined) {
-                        playPromise.catch(error => {
-                            console.log("BGM 자동 재생 차단됨 (사용자 클릭 대기)");
+                        playPromise.catch(() => {
+                            // 브라우저 정책으로 자동재생 막힐 경우, 첫 클릭 시 재생
                             document.addEventListener('click', () => { 
                                 audioBgm.play(); 
                             }, { once: true });
@@ -438,31 +432,20 @@
                 }
             } catch (e) {
                 console.error("설정 로드 중 오류:", e);
-                // 오류 발생 시 로컬스토리지 초기화 (꼬인 데이터 삭제)
-                // localStorage.removeItem('geulsup_settings'); 
             }
         }
-        
-        // 페이지 로드 시 실행
-        loadSettings();
+        loadSettings(); // 실행
 
-        // 소리 재생 헬퍼 함수
-        function playSfx(type) {
-            let sound;
-            if (type === 'hover') sound = audioHover;
-            else if (type === 'click') sound = audioClick;
-            else if (type === 'page') sound = audioPage;
-
-            if (sound) {
-                sound.currentTime = 0;
-                // 파일이 없어서 에러나는 것을 방지하기 위해 catch 추가
-                sound.play().catch((e) => { 
-                    // console.warn("효과음 재생 실패:", e); 
-                });
-            }
+        // --- 3. [NEW] 통합 효과음 재생 함수 (index.html과 동일 방식) ---
+        function playSfx(audioElement, multiplier = 1.0) {
+            if (!audioElement) return;
+            const sound = audioElement.cloneNode();
+            // 전역 볼륨 * 개별 보정치
+            sound.volume = globalSFXVolume * multiplier; 
+            sound.play().catch(() => {});
         }
 
-        // --- 2. 비주얼 (파티클, 별) ---
+        // --- 4. 비주얼 (파티클, 별) ---
         const canvas = document.getElementById('dust-canvas');
         const ctx = canvas.getContext('2d');
         const starsContainer = document.getElementById('stars-container');
@@ -511,7 +494,7 @@
         }
         animate();
 
-        // --- 3. 파럴랙스 엔진 ---
+        // --- 5. 파럴랙스 엔진 ---
         let mouseX = 0, mouseY = 0, targetX = 0, targetY = 0;
         const parallaxSens = 0.5;
 
@@ -521,7 +504,7 @@
         });
 
         function updateParallax() {
-            if(appSettings.parallax) {
+            if(isParallaxOn) { // appSettings.parallax -> isParallaxOn 으로 변경
                 targetX += (mouseX - targetX) * 0.05;
                 targetY += (mouseY - targetY) * 0.05;
 
@@ -542,7 +525,7 @@
         }
         updateParallax();
 
-        // --- 4. 로직 & UI ---
+        // --- 6. 로직 & UI ---
         const firebaseConfig = {
             apiKey: "AIzaSyANMznf6jeSLcLBPMZz7UrU7yf5YR3y18s",
             authDomain: "geulsup.firebaseapp.com",
@@ -566,16 +549,6 @@
             serenity: { color: '#81ecec', icon: '🌙' }
         };
 
-        const closeNoticeBtn = document.getElementById('close-notice-btn');
-        if (closeNoticeBtn) {
-            closeNoticeBtn.addEventListener('click', () => {
-                playSfx('click');
-                const notice = document.getElementById('current-month-notice');
-                notice.style.opacity = '0';
-                setTimeout(() => { notice.style.visibility = 'hidden'; }, 500);
-            });
-        }
-
         const els = {
             year: document.getElementById('disp-year'),
             month: document.getElementById('disp-month'),
@@ -594,7 +567,6 @@
             rptTitle: document.getElementById('rpt-title'),
             rptPersona: document.getElementById('rpt-persona-box'),
             rptQuotes: document.getElementById('rpt-quotes-box'),
-            
             diaryBookBtn: document.getElementById('diary-book-btn'),
             bookModal: document.getElementById('diary-book-modal'),
             realBook: document.getElementById('real-book'),
@@ -604,50 +576,117 @@
             bookPagination: document.getElementById('book-pagination')
         };
 
+        // 안내창 닫기 버튼
+        const closeNoticeBtn = document.getElementById('close-notice-btn');
+        if (closeNoticeBtn) {
+            closeNoticeBtn.addEventListener('click', () => {
+                playSfx(audioClick);
+                const notice = document.getElementById('current-month-notice');
+                notice.style.opacity = '0';
+                setTimeout(() => { notice.style.visibility = 'hidden'; }, 500);
+            });
+        }
+
         auth.onAuthStateChanged(async (user) => {
             if (user) await loadData(user.uid);
             else { alert("로그인 정보가 없습니다."); window.location.href = 'index.html'; }
         });
 
-        // 책 위치 보정 함수 (표지면 중앙, 펼치면 오른쪽 이동)
         function updateBookPosition() {
-            if (currentBookPage > 0) {
-                els.realBook.classList.add('is-open'); 
-            } else {
-                els.realBook.classList.remove('is-open'); 
-            }
+            if (currentBookPage > 0) els.realBook.classList.add('is-open'); 
+            else els.realBook.classList.remove('is-open'); 
         }
 
         async function loadData(uid) {
             try {
-                // 1. 유저의 현재 실시간 데이터 가져오기
+                // 1. 유저 정보
                 const userDoc = await db.collection('users').doc(uid).get();
                 const userData = userDoc.data();
                 
-                // 현재 연-월 계산
+                // 2. 일기 전수 조사 (스탯 계산 + 개수 세기)
+                const diarySnapshot = await db.collection('users').doc(uid).collection('diaries').get();
+                const calculatedStats = {}; 
+                const diaryCounts = {}; 
+
+                diarySnapshot.forEach(doc => {
+                    const d = doc.data();
+                    let dDate = null;
+                    if(d.timestamp && typeof d.timestamp.toDate === 'function') dDate = d.timestamp.toDate();
+                    else if(d.date_str) dDate = new Date(d.date_str);
+
+                    if(dDate) {
+                        const y = dDate.getFullYear();
+                        const m = String(dDate.getMonth()+1).padStart(2, '0');
+                        const key = `${y}-${m}`;
+
+                        if(!calculatedStats[key]) calculatedStats[key] = { wisdom:0, courage:0, kindness:0, diligence:0, serenity:0 };
+                        if(!diaryCounts[key]) diaryCounts[key] = 0; 
+                        
+                        diaryCounts[key]++; 
+
+                        if(d.stat_increase) {
+                            for(const [v, val] of Object.entries(d.stat_increase)) {
+                                if(calculatedStats[key][v] !== undefined) calculatedStats[key][v] += (parseInt(val) || 0);
+                            }
+                        }
+                    }
+                });
+
+                // 3. 아카이브 가져오기
+                const archiveSnapshot = await db.collection('users').doc(uid).collection('archives').get();
+                const archiveMap = {};
+                archiveSnapshot.forEach(doc => {
+                    archiveMap[doc.id] = doc.data();
+                });
+
+                archiveList = [];
                 const now = new Date();
-                const currentId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                const startDate = new Date('2024-01-01'); 
+                let loopDate = new Date(now.getFullYear(), now.getMonth(), 1); 
 
-                // 2. 가상의 '이번 달' 데이터 생성
-                const currentMonthEntry = {
-                    id: currentId,
-                    points: userData.total_points || { wisdom:0, courage:0, kindness:0, diligence:0, serenity:0 },
-                    isCurrent: true // 이번 달임을 표시하는 플래그
-                };
+                // 4. 달력 루프
+                while (loopDate >= startDate) {
+                    const y = loopDate.getFullYear();
+                    const m = String(loopDate.getMonth() + 1).padStart(2, '0');
+                    const id = `${y}-${m}`; 
+                    
+                    let points = { wisdom:0, courage:0, kindness:0, diligence:0, serenity:0 };
+                    let summary = null;
+                    let count = diaryCounts[id] || 0; 
 
-                // 3. 기존 보관함 데이터 가져오기
-                const snapshot = await db.collection('users').doc(uid).collection('archives').orderBy('archivedAt', 'desc').get();
-                
-                archiveList = [currentMonthEntry]; // 가상 데이터를 맨 앞에 넣고 시작
-                snapshot.forEach(doc => archiveList.push({ id: doc.id, ...doc.data() }));
+                    if (archiveMap[id]) {
+                        if (archiveMap[id].points) points = archiveMap[id].points;
+                        if (archiveMap[id].summary) summary = archiveMap[id].summary;
+                    } else if (calculatedStats[id]) {
+                        points = calculatedStats[id];
+                    }
 
-                // 렌더링 시작
+                    archiveList.push({
+                        id: id,
+                        points: points,
+                        summary: summary,
+                        diaryCount: count
+                    });
+                    
+                    loopDate.setMonth(loopDate.getMonth() - 1);
+                }
+
+                if (archiveList.length === 0) {
+                    const m = String(now.getMonth() + 1).padStart(2, '0');
+                    archiveList.push({
+                        id: `${now.getFullYear()}-${m}`,
+                        points: { wisdom:0, courage:0, kindness:0, diligence:0, serenity:0 },
+                        summary: null,
+                        diaryCount: 0
+                    });
+                }
+
                 renderPage(0, 'init');
-                
                 setTimeout(() => { els.transition.classList.add('fade-out'); }, 1000);
+
             } catch (e) {
                 console.error(e);
-                alert("데이터 로드 오류");
+                alert("데이터 로드 오류: " + e.message);
             }
         }
 
@@ -658,7 +697,8 @@
             els.year.innerText = y;
             els.month.innerText = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][parseInt(m)-1];
 
-            const stats = (data.summary && data.summary.stats) ? data.summary.stats : (data.points || {});
+            let stats = data.points || { wisdom:0, courage:0, kindness:0, diligence:0, serenity:0 };
+            
             Object.keys(virtueConfig).forEach(key => {
                 const val = stats[key] || 0;
                 const lvl = getLevel(val);
@@ -672,8 +712,8 @@
             });
 
             buildStats(stats);
-            if(data.isCurrent || data.summary) els.reportBtn.disabled = false;
-            else els.reportBtn.disabled = true;
+            
+            els.reportBtn.disabled = false;
 
             if (dir !== 'init') {
                 els.stage.style.opacity = '0';
@@ -704,76 +744,109 @@
         }
 
         function openStats() {
-            playSfx('click');
+            playSfx(audioClick);
             els.toggleBtn.classList.add('hidden'); els.panel.classList.add('active');
             setTimeout(() => { document.querySelectorAll('.stat-fill').forEach(bar => { bar.style.width = bar.dataset.targetWidth; }); }, 300);
         }
         function closeStats() {
-            playSfx('click');
+            playSfx(audioClick);
             els.panel.classList.remove('active'); els.toggleBtn.classList.remove('hidden');
             document.querySelectorAll('.stat-fill').forEach(bar => { bar.style.width = '0%'; });
         }
 
         function openReport() {
+            playSfx(audioClick);
             const data = archiveList[currentIndex];
             
-            // [수정 1] 이번 달인지 먼저 체크해야 합니다!
-            if (data.isCurrent) {
-                playSfx('click');
-                const notice = document.getElementById('current-month-notice');
-                if (notice) {
-                    notice.style.visibility = 'visible';
-                    notice.style.opacity = '1';
+            if (data.summary) {
+                const [y, m] = data.id.split('-');
+                els.rptTitle.innerText = `${["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][parseInt(m)-1]} ${y}`;
+
+                els.rptPersona.innerHTML = '';
+                const personas = data.summary.persona || ["기록이 없습니다."];
+                personas.forEach(p => {
+                    const div = document.createElement('div'); div.className = 'persona-text'; div.innerText = `"${p}"`;
+                    els.rptPersona.appendChild(div);
+                });
+
+                els.rptQuotes.innerHTML = '';
+                const quotes = data.summary.quotes || {};
+                for(const [key, arr] of Object.entries(quotes)) {
+                    if(Array.isArray(arr) && arr.length > 0) {
+                        const group = document.createElement('div'); group.className = 'virtue-group';
+                        group.innerHTML = `<div class="virtue-title" style="--v-color:${virtueConfig[key].color}">${key.toUpperCase()}</div>`;
+                        arr.forEach(item => {
+                            let text = "", dateStr = "Unknown Date";
+                            if(typeof item === 'object' && item !== null) {
+                                text = item.text || "";
+                                if(item.date) {
+                                    const d = new Date(item.date);
+                                    if(!isNaN(d)) dateStr = `${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getDate()).padStart(2,'0')}`;
+                                    else dateStr = item.date;
+                                }
+                            } else { text = item; }
+                            const qDiv = document.createElement('div'); qDiv.className = 'quote-item';
+                            qDiv.innerHTML = `<span class="q-date">${dateStr}</span><span class="q-text">"${text}"</span>`;
+                            group.appendChild(qDiv);
+                        });
+                        els.rptQuotes.appendChild(group);
+                    }
                 }
-                return; // 안내창 띄웠으니 여기서 종료
+                els.reportModal.classList.add('active');
+                return;
             }
 
-            // [수정 2] 이번 달이 아닐 때만 summary가 있는지 체크
-            if (!data.summary) return;
+            const [dataY, dataM] = data.id.split('-').map(Number);
+            const now = new Date();
+            const currY = now.getFullYear();
+            const currM = now.getMonth() + 1;
 
-            playSfx('click');
-            const [y, m] = data.id.split('-');
-            els.rptTitle.innerText = `${["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][parseInt(m)-1]} ${y}`;
+            const isPast = (dataY < currY) || (dataY === currY && dataM < currM);
 
-            els.rptPersona.innerHTML = '';
-            const personas = data.summary.persona || ["기록이 없습니다."];
-            personas.forEach(p => {
-                const div = document.createElement('div'); div.className = 'persona-text'; div.innerText = `"${p}"`;
-                els.rptPersona.appendChild(div);
-            });
-
-            els.rptQuotes.innerHTML = '';
-            const quotes = data.summary.quotes || {};
-            for(const [key, arr] of Object.entries(quotes)) {
-                if(Array.isArray(arr) && arr.length > 0) {
-                    const group = document.createElement('div'); group.className = 'virtue-group';
-                    group.innerHTML = `<div class="virtue-title" style="--v-color:${virtueConfig[key].color}">${key.toUpperCase()}</div>`;
-                    arr.forEach(item => {
-                        let text = "", dateStr = "Unknown Date";
-                        if(typeof item === 'object' && item !== null) {
-                            text = item.text || "";
-                            if(item.date) {
-                                const d = new Date(item.date);
-                                if(!isNaN(d)) dateStr = `${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getDate()).padStart(2,'0')}`;
-                                else dateStr = item.date;
-                            }
-                        } else { text = item; }
-                        const qDiv = document.createElement('div'); qDiv.className = 'quote-item';
-                        qDiv.innerHTML = `<span class="q-date">${dateStr}</span><span class="q-text">"${text}"</span>`;
-                        group.appendChild(qDiv);
-                    });
-                    els.rptQuotes.appendChild(group);
+            const notice = document.getElementById('current-month-notice');
+            const sub = document.getElementById('notice-subtitle');
+            const title = document.getElementById('notice-title');
+            const desc = document.getElementById('notice-desc');
+            const btnCreate = document.getElementById('btn-notice-create');
+            
+            if (isPast) {
+                if (data.diaryCount < 5) {
+                    if(sub) sub.innerText = "LACK OF MEMORIES";
+                    if(title) title.innerHTML = "기록이 충분하지 않습니다.";
+                    if(desc) desc.innerHTML = `월간 리포트를 작성하려면<br>최소 5개의 일기가 필요합니다.<br><br><span style="color:#d4af37; font-size:0.8rem;">(현재 기록: ${data.diaryCount}개)</span>`;
+                    if(btnCreate) btnCreate.style.display = 'none'; 
+                } else {
+                    if(sub) sub.innerText = "UNFINISHED TALE";
+                    if(title) title.innerHTML = "이 달의 리포트가<br>작성되지 않았습니다.";
+                    if(desc) desc.innerHTML = "기록을 정리하여 월간 리포트를<br>지금 작성하시겠습니까?";
+                    
+                    if(btnCreate) {
+                        btnCreate.style.display = 'inline-block';
+                        btnCreate.onclick = () => {
+                            sessionStorage.setItem('forceSeasonReport', 'true');
+                            sessionStorage.setItem('targetPeriod', data.id);
+                            window.location.href = 'index.html';
+                        };
+                    }
                 }
+            } else {
+                if(sub) sub.innerText = "IN PROGRESS";
+                if(title) title.innerHTML = "이 달의 기억은<br>아직 엮어지는 중입니다.";
+                if(desc) desc.innerHTML = "월간 리포트는 다음 달이 시작될 때<br>정원사가 정성껏 작성해 드립니다.";
+                if(btnCreate) btnCreate.style.display = 'none';
             }
-            els.reportModal.classList.add('active');
+
+            if(notice) {
+                notice.style.visibility = 'visible';
+                notice.style.opacity = '1';
+            }
         }
 
-        // --- 3D 일기장 로직 ---
         let currentBookPage = 0;
         let totalBookPages = 0;
 
         async function openDiaryBook() {
-            playSfx('click');
+            playSfx(audioClick);
             const data = archiveList[currentIndex];
             const [y, m] = data.id.split('-');
             
@@ -797,14 +870,11 @@
                 snapshot.forEach(doc => diaries.push(doc.data()));
 
                 if(diaries.length === 0) {
-                    // 인자 개수 맞추기 (마지막에 null 하나 더 추가)
                     addSheet("기록 없음", "이 달에는 남겨진 이야기가 없습니다.", null, "", "", null);
                 } else {
                     for(let i=0; i<diaries.length; i+=2) {
                         const d1 = diaries[i];
                         const d2 = diaries[i+1] || null; 
-                        
-                        // d2.ai_reply를 마지막 인자로 추가
                         addSheet(
                             d1.date_str, d1.content, d1.ai_reply, 
                             d2 ? d2.date_str : "", d2 ? d2.content : "", d2 ? d2.ai_reply : null
@@ -812,6 +882,8 @@
                     }
                 }
                 
+                addBackCover(); 
+
                 currentBookPage = 0;
                 totalBookPages = els.realBook.children.length;
                 updateZIndex();
@@ -824,11 +896,44 @@
             }
         }
 
+        function addBackCover() {
+            const paper = document.createElement('div');
+            paper.className = 'paper';
+            
+            const front = document.createElement('div');
+            front.className = 'front';
+            front.style.background = "linear-gradient(to right, #e3d2b4, #fff9e6 15%)"; 
+            front.innerHTML = `
+                <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100%; opacity:0.2;">
+                    <div style="font-family:'Cinzel'; font-size:1.5rem; margin-bottom:10px;">FIN</div>
+                    <div style="font-family:'Nanum Myeongjo'; font-size:0.8rem;">기억의 정원, 글숲</div>
+                </div>
+            `;
+
+            const back = document.createElement('div');
+            back.className = 'back cover-page'; 
+            back.style.borderLeft = "2px solid #d4af37"; 
+            back.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100%;">
+                    <div style="font-family:'Cinzel'; font-size:2.5rem; opacity:0.8; filter:blur(0.5px);">G S</div>
+                </div>
+            `;
+
+            paper.appendChild(front);
+            paper.appendChild(back);
+            
+            paper.addEventListener('click', () => {
+                if(paper.classList.contains('flipped')) goPrevPage();
+                else goNextPage();
+            });
+
+            els.realBook.appendChild(paper);
+        }
+
         function addSheet(date1, text1, reply1, date2, text2, reply2) {
             const paper = document.createElement('div');
             paper.className = 'paper';
             
-            // Front (오른쪽 페이지 - Diary 1)
             const front = document.createElement('div');
             front.className = 'front';
             front.innerHTML = `
@@ -837,7 +942,6 @@
                 ${reply1 ? `<div class="d-reply-box">🌿 ${reply1}</div>` : ''}
             `;
 
-            // Back (왼쪽 페이지 - Diary 2)
             const back = document.createElement('div');
             back.className = 'back';
             if (date2) {
@@ -845,7 +949,7 @@
                     <div class="d-date-title">${date2}</div>
                     <div class="d-content-text">${text2}</div>
                     ${reply2 ? `<div class="d-reply-box">🌿 ${reply2}</div>` : ''} 
-                `; // 👈 이 부분에 reply2 로직 추가
+                `; 
             } else {
                 back.innerHTML = `<div style="display:flex; justify-content:center; align-items:center; height:100%; opacity:0.1; font-family:'Cinzel'; font-size:2rem;">GEULSEUP</div>`;
             }
@@ -862,8 +966,8 @@
         }
 
         function goNextPage() {
-            if(currentBookPage < totalBookPages - 1) {
-                playSfx('page'); // 책 넘기는 소리
+            if(currentBookPage < totalBookPages) { 
+                playSfx(audioPage); 
                 els.realBook.children[currentBookPage].classList.add('flipped');
                 currentBookPage++;
                 updateZIndex();
@@ -874,7 +978,7 @@
 
         function goPrevPage() {
             if(currentBookPage > 0) {
-                playSfx('page'); // 책 넘기는 소리
+                playSfx(audioPage); 
                 currentBookPage--;
                 els.realBook.children[currentBookPage].classList.remove('flipped');
                 updateZIndex();
@@ -892,7 +996,13 @@
         }
 
         function updatePagination() {
-            els.bookPagination.innerText = currentBookPage === 0 ? "Cover" : `${currentBookPage} / ${totalBookPages - 1}`;
+            if (currentBookPage === 0) {
+                els.bookPagination.innerText = "Cover";
+            } else if (currentBookPage === totalBookPages) {
+                els.bookPagination.innerText = "Back Cover"; 
+            } else {
+                els.bookPagination.innerText = `${currentBookPage} / ${totalBookPages - 1}`;
+            }
         }
 
         function getLevel(p) {
@@ -901,14 +1011,13 @@
             if(p<=150) return 9; return 10;
         }
 
-        // 이벤트 리스너 등록 (클릭음 추가)
         els.toggleBtn.addEventListener('click', openStats);
         els.closePanel.addEventListener('click', closeStats);
         els.reportBtn.addEventListener('click', openReport);
-        els.closeReport.addEventListener('click', () => { playSfx('click'); els.reportModal.classList.remove('active'); });
+        els.closeReport.addEventListener('click', () => { playSfx(audioClick); els.reportModal.classList.remove('active'); });
         
         els.diaryBookBtn.addEventListener('click', openDiaryBook);
-        els.closeBook.addEventListener('click', () => { playSfx('click'); els.bookModal.classList.remove('active'); });
+        els.closeBook.addEventListener('click', () => { playSfx(audioClick); els.bookModal.classList.remove('active'); });
         els.bookNext.addEventListener('click', goNextPage);
         els.bookPrev.addEventListener('click', goPrevPage);
         
@@ -917,24 +1026,21 @@
              else goPrevPage();
         });
 
-        els.prevBtn.addEventListener('click', () => { playSfx('click'); if(currentIndex < archiveList.length - 1) { currentIndex++; renderPage(currentIndex, 'prev'); } });
-        els.nextBtn.addEventListener('click', () => { playSfx('click'); if(currentIndex > 0) { currentIndex--; renderPage(currentIndex, 'next'); } });
+        els.prevBtn.addEventListener('click', () => { playSfx(audioClick); if(currentIndex < archiveList.length - 1) { currentIndex++; renderPage(currentIndex, 'prev'); } });
+        els.nextBtn.addEventListener('click', () => { playSfx(audioClick); if(currentIndex > 0) { currentIndex--; renderPage(currentIndex, 'next'); } });
         
         els.returnBtn.addEventListener('click', () => {
-            playSfx('click');
+            playSfx(audioClick);
             sessionStorage.setItem('skipIntro', 'true'); 
             els.transition.classList.remove('fade-out');
             setTimeout(() => { window.location.href = 'index.html'; }, 1200);
         });
 
-        // 모든 인터랙티브 요소에 호버/클릭음 자동 적용
+        // 모든 인터랙티브 요소에 호버 및 효과음 연결 (NEW)
         const interactiveElements = document.querySelectorAll('button, .nav-btn, #stats-toggle-btn, .close-book-x, .close-panel-btn, .close-report-x, .island-obj');
         interactiveElements.forEach(el => {
-            el.addEventListener('mouseenter', () => playSfx('hover'));
-            if(el.tagName === 'BUTTON' || el.classList.contains('nav-btn')) {
-                // 상단에서 개별 리스너에 playSfx('click')을 넣었으므로, 여기선 호버만 처리
-                // (중복 재생 방지)
-            }
+            el.addEventListener('mouseenter', () => playSfx(audioHover));
+            // 대부분의 버튼은 개별 함수에서 playSfx(audioClick)을 호출하므로 중복 방지
         });
     </script>
 </body>

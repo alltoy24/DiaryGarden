@@ -1,0 +1,63 @@
+(async function injectDiaryData() {
+    // --- ⚙️ 설정 구역 ---
+    const targetYear = 2026;   // 주입할 연도
+    const targetMonth = 1;     // 주입할 월 (1월)
+    const diaryCount = 6;      // 주입할 일기 개수 (5개 이상 추천)
+    // ------------------
+
+    console.log(`🚀 [데이터 주입] ${targetYear}년 ${targetMonth}월 데이터를 생성합니다...`);
+
+    const uid = firebase.auth().currentUser?.uid;
+    if (!uid) {
+        console.error("❌ 로그인된 유저가 없습니다. 로그인 후 다시 시도하세요.");
+        return;
+    }
+
+    const db = firebase.firestore();
+    const contents = [
+        "오늘은 정원을 산책하며 명상을 했다. 마음이 한결 가벼워지는 기분이다.",
+        "어려운 코딩 문제를 해결했다. 역시 포기하지 않고 지혜를 모으는 것이 중요하다.",
+        "친구에게 따뜻한 조언을 건넸다. 누군가에게 도움이 된다는 건 참 기쁜 일이다.",
+        "운동을 쉬지 않고 1시간 동안 했다. 성실함이 내 몸을 바꿀 것이라 믿는다.",
+        "두려웠던 발표를 무사히 마쳤다. 용기를 내길 정말 잘했다는 생각이 든다.",
+        "조용한 카페에서 책을 읽었다. 지혜의 나무에 물을 주는 기분이다.",
+        "오늘 하루도 수고한 나에게 작은 선물을 주었다. 평온한 밤이다."
+    ];
+
+    const stats = ['wisdom', 'courage', 'kindness', 'diligence', 'serenity'];
+
+    try {
+        for (let i = 1; i <= diaryCount; i++) {
+            // 날짜 생성 (1일부터 순차적으로)
+            const day = String(i).padStart(2, '0');
+            const monthStr = String(targetMonth).padStart(2, '0');
+            const dateStr = `${targetYear}-${monthStr}-${day}`;
+            
+            // 타임스탬프용 Date 객체 (해당 날짜 12:00:00)
+            const timestamp = new Date(targetYear, targetMonth - 1, i, 12, 0, 0);
+
+            // 랜덤 스탯 생성
+            const randomStat = stats[Math.floor(Math.random() * stats.length)];
+            const statIncrease = { wisdom: 0, courage: 0, kindness: 0, diligence: 0, serenity: 0 };
+            statIncrease[randomStat] = Math.floor(Math.random() * 10) + 5; // 5~15점 사이
+
+            const diaryData = {
+                content: contents[i % contents.length] + " (테스트 기록)",
+                ai_reply: "정원사가 당신의 소중한 기록을 읽었습니다. 이 기록이 당신의 성장에 큰 밑거름이 될 것입니다. 🌿",
+                date_str: dateStr,
+                timestamp: timestamp,
+                stat_increase: statIncrease
+            };
+
+            // Firestore 주입
+            await db.collection('users').doc(uid).collection('diaries').add(diaryData);
+            console.log(`✅ [${i}/${diaryCount}] ${dateStr} 데이터 주입 완료`);
+        }
+
+        console.log("✨ 모든 데이터 주입이 완료되었습니다! 역사관을 새로고침해보세요.");
+        alert(`${targetYear}년 ${targetMonth}월 데이터 ${diaryCount}개가 주입되었습니다.`);
+
+    } catch (error) {
+        console.error("❌ 데이터 주입 중 오류 발생:", error);
+    }
+})();
