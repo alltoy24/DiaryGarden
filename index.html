@@ -1837,29 +1837,59 @@
         }
 
         function loadSettings() {
-            const saved = localStorage.getItem('geulsup_settings');
-            const s = saved ? JSON.parse(saved) : defaultSettings;
+            try {
+                const saved = localStorage.getItem('geulsup_settings');
+                let s = {};
+                if (saved) {
+                    try {
+                        s = JSON.parse(saved);
+                    } catch (e) {
+                        console.error("JSON 파싱 오류:", e);
+                        s = {}; // 파싱 실패 시 빈 객체로 초기화
+                    }
+                }
 
-            // 1. 값 복구
-            globalSFXVolume = s.sfxVolume;
-            globalTheme = s.theme;
-            particleDensity = s.particleDensity;
-            isParallaxOn = s.parallax;
+                // 1. 값 복구 (없으면 기본값 사용 - 안전장치)
+                globalBGMVolume = (s.bgmVolume !== undefined && s.bgmVolume !== null) ? parseFloat(s.bgmVolume) : 0.3;
+                globalSFXVolume = (s.sfxVolume !== undefined && s.sfxVolume !== null) ? parseFloat(s.sfxVolume) : 0.5;
+                particleDensity = (s.particleDensity !== undefined) ? parseInt(s.particleDensity) : 2;
+                isParallaxOn = (s.parallax !== undefined) ? s.parallax : true;
+                globalTheme = s.theme || 'auto';
 
-            // 2. UI 반영
-            if(document.getElementById('vol-bgm')) document.getElementById('vol-bgm').value = s.bgmVolume;
-            if(document.getElementById('vol-sfx')) document.getElementById('vol-sfx').value = s.sfxVolume;
-            if(document.getElementById('disp-bgm')) document.getElementById('disp-bgm').innerText = Math.round(s.bgmVolume * 100) + '%';
-            if(document.getElementById('disp-sfx')) document.getElementById('disp-sfx').innerText = Math.round(s.sfxVolume * 100) + '%';
+                // 2. UI(슬라이더)에 반영
+                if (document.getElementById('vol-bgm')) document.getElementById('vol-bgm').value = globalBGMVolume;
+                if (document.getElementById('vol-sfx')) document.getElementById('vol-sfx').value = globalSFXVolume;
+                if (document.getElementById('disp-bgm')) document.getElementById('disp-bgm').innerText = Math.round(globalBGMVolume * 100) + '%';
+                if (document.getElementById('disp-sfx')) document.getElementById('disp-sfx').innerText = Math.round(globalSFXVolume * 100) + '%';
+                
+                if (document.getElementById('opt-particle')) document.getElementById('opt-particle').value = particleDensity;
+                if (document.getElementById('opt-parallax')) document.getElementById('opt-parallax').checked = isParallaxOn;
+                
+                // 파티클 텍스트 업데이트
+                const pTextMap = { 0: "끄기 (Off)", 1: "보통 (Medium)", 2: "많음 (High)" };
+                if (document.getElementById('disp-particle')) document.getElementById('disp-particle').innerText = pTextMap[particleDensity] || "많음 (High)";
 
-            // 3. [중요] 실제 오디오 태그에 즉시 볼륨 적용 (BGM류)
-            if(audioAmbiance) audioAmbiance.volume = s.bgmVolume;
-            if(audioEnding) audioEnding.volume = s.bgmVolume;
+                // 3. [중요] 실제 오디오 태그에 즉시 볼륨 적용
+                if (audioAmbiance) audioAmbiance.volume = globalBGMVolume;
+                if (audioEnding) audioEnding.volume = globalBGMVolume;
 
-            // 4. 기타 설정 적용
-            updateDayNightCycle();
-            document.body.classList.remove('fs-small', 'fs-medium', 'fs-large');
-            document.body.classList.add(`fs-${s.fontSize}`);
+                // 4. 테마 및 폰트 적용
+                updateDayNightCycle();
+                document.body.classList.remove('fs-small', 'fs-medium', 'fs-large');
+                document.body.classList.add(`fs-${s.fontSize || 'medium'}`);
+
+                // 버튼 스타일 동기화
+                document.querySelectorAll('#font-group .opt-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (s.fontSize || 'medium')));
+                document.querySelectorAll('#theme-group .opt-btn').forEach(b => b.classList.toggle('active', b.dataset.val === globalTheme));
+
+                console.log("설정 로드 완료:", { globalBGMVolume, globalSFXVolume });
+
+            } catch (e) {
+                console.error("설정 로드 중 치명적 오류:", e);
+                // 오류 나면 기본값으로 롤백
+                globalBGMVolume = 0.2;
+                globalSFXVolume = 0.4;
+            }
         }
 
         // 페이지 로드 시 설정 불러오기
@@ -3535,46 +3565,41 @@
         
         function enterGardenMode(isInstant = false) {
             if (!isInstant) {
-                // [수동 클릭 시] 소리 재생 및 부드러운 전환
                 playSfx('sfx-click');
-                audioClear.volume = 0.4 * globalSFXVolume;
+                
+                // 효과음 볼륨도 전역 변수 기반으로 설정
+                audioClear.volume = 0.4 * globalSFXVolume; 
                 audioClear.play();
-                audioAmbiance.volume = 1; // BGM 켜기
+                
+                // [중요 수정] 볼륨을 1로 강제하지 말고, 설정된 값(globalBGMVolume)을 사용
+                audioAmbiance.volume = globalBGMVolume; 
                 audioAmbiance.play().catch(()=>{});
             } else {
-                // [자동 입장 시] BGM만 조용히 재생
                 if(audioAmbiance) { 
-                    audioAmbiance.volume = 1; 
+                    audioAmbiance.volume = globalBGMVolume; // 여기서도 설정값 사용
                     audioAmbiance.play().catch(()=>{}); 
                 }
             }
 
-            // UI 사라짐
             uiLayer.style.opacity = '0';
-            isClearing = true; // 파티클 등 상태 변경
+            isClearing = true; 
             
-            // 월드 확대 효과 (2배 줌)
             worldContainer.style.transform = "scale(2.0)"; 
 
-            // 시간차로 정원 요소(섬, 버튼 등) 등장
             setTimeout(() => {
                 isGardenMode = true;
                 const allSceneObjects = document.querySelectorAll('.scene-object');
                 allSceneObjects.forEach((obj) => { obj.classList.add('visible'); });
 
                 if (diaryOpenBtn) diaryOpenBtn.classList.add('visible');
-
                 if (menuToggleBtn) menuToggleBtn.classList.add('visible');
 
                 cloudFloor.style.opacity = '1'; 
                 hudLayer.style.opacity = '1'; 
-                updateParallax(); // 파럴랙스 시작
-            }, isInstant ? 100 : 1000); // 자동이면 0.1초 뒤, 수동이면 1초 뒤 등장
+                updateParallax(); 
+            }, isInstant ? 100 : 1000); 
 
-            // UI 레이어 완전히 끄기
-            setTimeout(() => { 
-                uiLayer.style.display = 'none'; 
-            }, isInstant ? 150 : 1500);
+            setTimeout(() => { uiLayer.style.display = 'none'; }, isInstant ? 150 : 1500);
         }
 
         // 2. [기존 버튼 연결] 마우스 호버 및 클릭 이벤트
@@ -3589,6 +3614,8 @@
         });
 
         window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+
             // 1. 역사관에서 '정원으로 돌아가기'로 옴 (타이틀 스킵)
             if (sessionStorage.getItem('skipIntro') === 'true') {
                 sessionStorage.removeItem('skipIntro');

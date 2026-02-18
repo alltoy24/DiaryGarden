@@ -419,7 +419,8 @@
 
                 // 배경음악 볼륨 즉시 적용
                 if (audioBgm) {
-                    audioBgm.volume = globalBGMVolume;
+                    const bgmWeight = 0.2; // ★ 여기 숫자를 조절하세요 (0.1 ~ 1.0)
+                    audioBgm.volume = Math.min(1, globalBGMVolume * bgmWeight);
                     const playPromise = audioBgm.play();
                     if (playPromise !== undefined) {
                         playPromise.catch(() => {
@@ -504,11 +505,13 @@
         });
 
         function updateParallax() {
-            if(isParallaxOn) { // appSettings.parallax -> isParallaxOn 으로 변경
+            const islands = document.querySelectorAll('.island-obj');
+
+            if(isParallaxOn) {
+                // [ON] 마우스 따라 움직임 + 중앙 정렬 보정
                 targetX += (mouseX - targetX) * 0.05;
                 targetY += (mouseY - targetY) * 0.05;
 
-                const islands = document.querySelectorAll('.island-obj');
                 islands.forEach(obj => {
                     const depth = parseFloat(obj.dataset.depth || 0.02);
                     const bx = parseFloat(obj.dataset.baseX);
@@ -517,8 +520,21 @@
                     const moveX = targetX * depth * width * -1 * parallaxSens;
                     const moveY = targetY * depth * height * -1 * parallaxSens;
 
-                    obj.style.left = `${bx}%`; obj.style.top = `${by}%`;
+                    obj.style.left = `${bx}%`; 
+                    obj.style.top = `${by}%`;
+                    // 여기서 -50%를 해줘야 섬의 중심이 좌표에 옴
                     obj.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                });
+            } else {
+                // [OFF] 움직임 없음 + 강제 중앙 정렬
+                islands.forEach(obj => {
+                    const bx = parseFloat(obj.dataset.baseX);
+                    const by = parseFloat(obj.dataset.baseY);
+                    
+                    obj.style.left = `${bx}%`; 
+                    obj.style.top = `${by}%`;
+                    // 움직임 값(moveX, Y)을 빼고 정중앙 고정
+                    obj.style.transform = `translate(-50%, -50%)`;
                 });
             }
             requestAnimationFrame(updateParallax);
