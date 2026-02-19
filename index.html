@@ -2211,7 +2211,7 @@
         function startTutorialStep1() {
             isTutorialMode = true;
             tutorialStep = 1;
-            playSfx('sfx-tut-1', 1.2); 
+            // playSfx('sfx-tut-1', 1.2); <- 원래 여기 있던 즉시 재생을 아래로 옮깁니다.
 
             // 클릭 방어막 가동!
             tutBlocker.classList.add('active');
@@ -2227,29 +2227,39 @@
             // 0.1초 뒤에 거대했던 구멍이 버튼 크기에 맞춰 샥~ 좁혀짐
             setTimeout(() => {
                 moveSpotlight(diaryOpenBtn, "정원에 오신 것을 환영합니다.", "먼저, 우측 하단의 버튼을 눌러<br>당신의 첫 이야기를 심어보세요.", 40);
+                
+                // ★ 스포트라이트가 이동하는 0.65초 뒤에 사운드 재생
+                setTimeout(() => { playSfx('sfx-tut-1', 1.2); }, 650);
             }, 100); 
         }
 
         tutNextBtn.addEventListener('click', () => {
             playSfx('sfx-click');
 
+            // ★ 스포트라이트 이동 타이밍에 맞춰 재생하는 도우미 함수
+            const playDelayedSfx = (sfxId, vol = 1.0) => {
+                setTimeout(() => { playSfx(sfxId, vol); }, 650);
+            };
+
             if (tutorialStep === 2) {
                 tutorialStep = 3;
-                playSfx('sfx-tut-2');
-                // 여기서 타겟을 'diarySubmitBtn'으로 잡으면 
-                // 위에서 만든 회피 로직이 작동해서 Next 버튼을 안 가리게 됩니다.
                 moveSpotlight(diarySubmitBtn, "나무 심기 (기록 제출)", "기록이 끝나면 이 버튼을 눌러주세요.<br>작성한 글은 정원의 양분이 됩니다.", 20);
+                playDelayedSfx('sfx-tut-2');
             }
             else if (tutorialStep === 3) {
                 tutorialStep = 4;
-                playSfx('sfx-tut-3', 1.0);
                 moveSpotlight(diaryCloseX, "창 닫기", 
                     "작성을 마치거나 취소하고 싶을 때는<br>이 버튼을 눌러 정원으로 돌아갑니다.<br><br>" +
                     "<span style='font-size: 0.85rem; color: #888; border-top: 1px solid #333; display: block; padding-top: 10px; margin-top: 10px;'>" +
                     "💡 튜토리얼은 사이드바 메뉴 '도움말'을 클릭해 다시 확인할 수 있습니다.</span>", 
                     30
                 );
-                tutNextBtn.innerHTML = "FINISH ❯"; 
+                playDelayedSfx('sfx-tut-3', 1.0);
+                
+                // ★ 버튼 글자도 화면 이동이 완료될 때 스르륵 바뀌도록 딜레이 적용
+                setTimeout(() => {
+                    tutNextBtn.innerHTML = "FINISH ❯"; 
+                }, 650);
             }
             else if (tutorialStep === 4) {
                 // 튜토리얼 완전 종료 및 싹 다 초기화
@@ -2270,7 +2280,10 @@
                 localStorage.setItem('geulsup_tutorial_done', 'true'); 
                 
                 tutText.style.bottom = ''; tutText.style.left = '';
-                tutText.style.transform = ''; tutNextBtn.innerHTML = "NEXT ❯"; 
+                tutText.style.transform = ''; 
+                
+                // 버튼 텍스트 초기화 (딜레이 없이 바로 넥스트로)
+                tutNextBtn.innerHTML = "NEXT ❯"; 
             }
         });
 
@@ -3580,9 +3593,11 @@
                 // 모달창이 스르륵 뜨는 시간을 벌어준 뒤 스포트라이트 이동
                 setTimeout(() => {
                     tutNextBtn.classList.add('active'); 
-                    playSfx('sfx-tut-2', 1.0);
                     moveSpotlight(diaryTextarea, "기억의 파편", "이곳에 오늘 있었던 일이나 감정을 적습니다.<br>최소 30자 이상 작성해야 합니다.", 40);
-                }, 850); // 모달 transition 시간과 맞춤
+                    
+                    // ★ 스포트라이트 이동 타이밍(650ms)에 맞춰 사운드 재생
+                    setTimeout(() => { playSfx('sfx-tut-2', 1.0); }, 650);
+                }, 850); 
             }
 
             if (menuToggleBtn) menuToggleBtn.classList.remove('visible');
