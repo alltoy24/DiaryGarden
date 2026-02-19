@@ -414,7 +414,7 @@
             z-index: 6000; display: flex; justify-content: center; align-items: center;
             opacity: 0; visibility: hidden; transition: all 0.8s ease;
         }
-        #result-modal.active { opacity: 1; visibility: visible; }
+        
 
         .result-window {
             width: 650px; padding: 60px;
@@ -424,7 +424,14 @@
             text-align: center; position: relative;
             transform: translateY(50px); transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #result-modal.active .result-window { transform: translateY(0); }
+
+        #result-modal.active { 
+            opacity: 1 !important; 
+            visibility: visible !important; 
+        }
+        #result-modal.active .result-window { 
+            transform: scale(1) !important; 
+        }
 
         .result-subtitle { font-family: 'Cinzel', serif; color: #d4af37; letter-spacing: 0.3rem; font-size: 0.8rem; }
         .result-title { font-family: 'Nanum Myeongjo', serif; font-size: 2.2rem; color: #fff; margin-top: 10px; margin-bottom: 40px; }
@@ -1305,6 +1312,32 @@
         #btn-guest-confirm:hover { background: #fff; border-color: #fff; }
         #limit-modal.active { opacity: 1 !important; visibility: visible !important; pointer-events: auto; }
         #limit-modal.active .limit-window { transform: scale(1) !important; }
+
+        /* 광고 더미 박스 (개발용) */
+        .ad-placeholder {
+            width: 100%;
+            height: 60px; /* 모바일 배너 표준 높이 */
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px dashed rgba(212, 175, 55, 0.3);
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 4px;
+        }
+
+        .ad-placeholder span {
+            font-family: 'Cinzel', serif;
+            color: rgba(212, 175, 55, 0.4);
+            font-size: 0.7rem;
+            letter-spacing: 0.2rem;
+        }
+
+        #loading-ad-modal.active { 
+            opacity: 1 !important; 
+            visibility: visible !important; 
+            pointer-events: auto; 
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1591,21 +1624,38 @@
             </p>
         </div>
     </div>
-    <div id="result-modal">
-        <div class="result-window">
-            <div class="result-header">
-                <span class="result-subtitle">THE GARDENER'S INSIGHT</span>
-                <h2 class="result-title">정원사의 답장</h2>
-            </div>
+    <div id="result-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(15px); z-index:6000; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transition:all 0.8s ease;">
+        <div class="result-window" style="width:650px; padding:60px; background:linear-gradient(145deg, rgba(25,30,35,0.9), rgba(10,12,15,1)); border:1px solid rgba(212,175,55,0.3); box-shadow:0 0 50px rgba(0,0,0,1); text-align:center; transform:scale(0.9); transition:transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
             
-            <div class="result-content" id="result-comment">
+            <div id="result-loading-area" style="display:flex; flex-direction:column; align-items:center; padding: 40px 0;">
+                <div class="spinner" style="margin-bottom: 25px;"></div>
+                <div style="font-family:'Nanum Myeongjo'; color:#d4af37; font-size:1.3rem; line-height:1.6;">
+                    정원사가 당신의 이야기를<br>신중하게 읽고 있습니다...
                 </div>
-
-            <div class="result-footer">
-                <div id="result-point-up-area">
-                    </div>
-                <button id="result-close-btn">정원으로 돌아가기</button>
             </div>
+
+            <div id="result-content-area" style="display:none;">
+                <div class="result-header">
+                    <span class="result-subtitle">THE GARDENER'S INSIGHT</span>
+                    <h2 class="result-title">정원사의 답장</h2>
+                </div>
+                <div class="result-content" id="result-comment"></div>
+                <div class="result-footer">
+                    <div id="result-point-up-area" style="display:flex; justify-content:center; gap:15px; margin-bottom:40px; flex-wrap:wrap;"></div>
+                    <button id="result-close-btn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:#fff; padding:12px 40px; font-family:'Nanum Myeongjo'; cursor:pointer; transition:0.3s;">정원으로 돌아가기</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="loading-ad-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9000; display:flex; justify-content:center; align-items:center; opacity:0; visibility:hidden; transition:all 0.4s ease;">
+        <div style="width: 300px; height: 250px; background: rgba(255,255,255,0.05); border: 1px dashed rgba(212,175,55,0.3); display:flex; justify-content:center; align-items:center; position: relative; border-radius: 4px; box-shadow: 0 0 50px rgba(0,0,0,0.8);">
+            <span style="font-family:'Cinzel'; color:rgba(212,175,55,0.5); font-size:0.8rem; letter-spacing:0.2rem;">ADVERTISEMENT</span>
+            
+            <button id="ad-close-btn" style="position:absolute; top:-40px; right:0; background:transparent; border:none; color:#888; font-family:'Cinzel'; font-size:1rem; cursor:not-allowed; pointer-events:none; transition:all 0.3s;">
+                Wait... 5
+            </button>
         </div>
     </div>
 
@@ -3277,20 +3327,20 @@
         });
 
         diarySubmitBtn.addEventListener('click', async () => {
-            const text = diaryTextarea.value;
-            
-            // 1. 유효성 검사 (글자수 체크)
+            const text = diaryTextarea.value.trim();
+
+            // 1. 유효성 및 작성 한도 검증
             if (text.length < 30 || text.length > 200) {
                 alert("일기는 30자 이상 200자 이하로 작성해주세요.");
                 return;
             }
 
-            // ★ 2. 제출 순간 날짜 및 횟수 이중 방어 검증
             const todayStr = getTodayStr();
             if (lastDiaryDate !== todayStr) {
                 dailyDiaryCount = 0;
                 lastDiaryDate = todayStr;
             }
+
             if (dailyDiaryCount >= 2) {
                 alert("오늘 작성 한도를 초과했습니다.");
                 diaryModal.classList.remove('active');
@@ -3298,117 +3348,180 @@
                 return;
             }
 
-            // 버튼 비활성화 및 로딩
+            // 2. 버튼 비활성화 및 일기장 닫기
             diarySubmitBtn.disabled = true;
-            diarySubmitBtn.innerText = "정원사가 읽는 중... 🌿";
             playSfx('sfx-click');
+            diaryModal.classList.remove('active');
 
-            try {
-                const result = await realAnalyzeDiary(text);
-                currentLastResult = result; 
+            // 모달 요소들 가져오기
+            const resultModalContainer = document.getElementById('result-modal');
+            const loadingArea = document.getElementById('result-loading-area');
+            const contentArea = document.getElementById('result-content-area');
+            const adModal = document.getElementById('loading-ad-modal');
+            const adCloseBtn = document.getElementById('ad-close-btn');
 
-                // ★ 3. 작성 횟수 +1 증가
-                dailyDiaryCount++; 
+            // 3. [1단계 연출] '정원사가 읽고 있습니다' 로딩창 즉시 띄우기
+            loadingArea.style.display = 'flex';
+            contentArea.style.display = 'none';
+            resultModalContainer.classList.add('active'); 
+            resultModalContainer.querySelector('.result-window').style.transform = 'scale(1)';
 
-                const newDiaryObj = {
-                    content: text,
-                    ai_reply: result.comment,
-                    stat_increase: result.points,
-                    date_str: todayStr,
-                    timestamp: isGuestMode ? null : firebase.firestore.FieldValue.serverTimestamp() 
-                };
+            // 상태 체크용 변수 (이게 핵심입니다!)
+            let aiFinished = false; // AI 분석이 끝났는가?
+            let adClosed = false;   // 유저가 광고를 닫았는가?
+            let apiError = null;    // 에러 발생 여부
 
-                // 4. 게스트 vs 회원 저장 분기
-                if (isGuestMode) {
-                    // [A] 게스트 모드
-                    cachedDiaries.unshift({
-                        ...newDiaryObj,
-                        timestamp: { toDate: () => new Date() } 
-                    }); 
-                    
-                    const saveToLocal = cachedDiaries.map(d => ({
-                        content: d.content, ai_reply: d.ai_reply, stat_increase: d.stat_increase, date_str: d.date_str
-                    }));
-                    localStorage.setItem('geulsup_guest_diaries', JSON.stringify(saveToLocal));
-
-                    // ★ 횟수 및 날짜 로컬스토리지 갱신
-                    localStorage.setItem('geulsup_guest_last_date', todayStr);
-                    localStorage.setItem('geulsup_guest_daily_count', dailyDiaryCount.toString());
-
-                    for (const [virtue, score] of Object.entries(result.points)) {
-                        if (score > 0) currentPoints[virtue] += score;
-                    }
-                    localStorage.setItem('geulsup_guest_points', JSON.stringify(currentPoints));
-
-                } else {
-                    // [B] 회원 모드
-                    await db.collection('users').doc(currentUser.uid).collection('diaries').add(newDiaryObj);
-                    const userRef = db.collection('users').doc(currentUser.uid);
-                    
-                    // ★ 작성 횟수, 날짜, 포인트 DB 업데이트
-                    const updateData = {
-                        last_diary_date: todayStr,
-                        daily_diary_count: dailyDiaryCount
-                    };
-                    
-                    for (const [virtue, score] of Object.entries(result.points)) {
-                        if (score > 0) {
-                            updateData[`total_points.${virtue}`] = firebase.firestore.FieldValue.increment(score);
-                        }
-                    }
-                    await userRef.update(updateData);
-                    
-                    cachedDiaries.unshift({
-                        ...newDiaryObj,
-                        timestamp: { toDate: () => new Date() }
-                    });
+            // [결과창 전환 함수] - 두 조건이 모두 만족될 때만 실행됨
+            const swapToResult = () => {
+                loadingArea.style.display = 'none';
+                contentArea.style.display = 'block';
+                if (audioResult) {
+                    const resSound = audioResult.cloneNode();
+                    resSound.volume = 0.6 * globalSFXVolume;
+                    resSound.play().catch(() => {});
                 }
-
-                // 5. UI 업데이트 (점수 연출 등)
-                resultPointUpArea.innerHTML = '';
-                virtues.forEach((v, index) => {
-                    const p = result.points[v] || 0;
-                    if (p > 0) {
-                        if (!isGuestMode) currentPoints[v] += p;
-
-                        islandData[v].logs.unshift({ date: '방금 전', text: text });
-                        
-                        const badge = document.createElement('div');
-                        badge.classList.add('point-badge', `badge-${v}`);
-                        badge.innerText = `${v.toUpperCase()} +${p}`;
-                        badge.style.animationDelay = `${0.8 + (index * 0.1)}s`;
-                        resultPointUpArea.appendChild(badge);
-
-                        const slider = document.getElementById(`rng-${v}`);
-                        const display = document.getElementById(`val-${v}`);
-                        if (slider) slider.value = currentPoints[v];
-                        if (display) display.innerText = currentPoints[v];
-                        updateIslandVisual(v, currentPoints[v]);
-                    }
-                });
-
-                resultComment.innerText = result.comment;
-                diaryModal.classList.remove('active');
-                
-                setTimeout(() => {
-                    resultModal.classList.add('active');
-                    if(audioResult) {
-                        const resSound = audioResult.cloneNode();
-                        resSound.volume = 0.6 * globalSFXVolume;
-                        resSound.play().catch(()=>{});
-                    }
-                }, 500);
-
                 diaryTextarea.value = '';
                 charCounter.innerText = "0 / 200";
-
-            } catch (err) {
-                console.error(err);
-                alert("일기 저장 중 오류가 발생했습니다: " + err.message);
-            } finally {
                 diarySubmitBtn.disabled = false;
-                updateSubmitButtonText(); // ★ 제출 완료/에러 후 남은 횟수 텍스트 즉시 갱신
-            }
+                updateSubmitButtonText();
+            };
+
+            const handleError = (err) => {
+                alert("일기 저장 중 오류가 발생했습니다: " + err.message);
+                resultModalContainer.classList.remove('active');
+                diarySubmitBtn.disabled = false;
+                updateSubmitButtonText();
+            };
+
+
+            // 4. [UI 타이머 흐름] 무조건 2초 뒤에 광고 띄우기
+            setTimeout(() => {
+                // 혹시 그 2초 안에 치명적인 에러가 났다면 광고 띄우지 않음
+                if (aiFinished && apiError) return;
+
+                // 2초 감상 후 전면 광고 덮기
+                adModal.classList.add('active');
+
+                // 광고 카운트다운 시작
+                let countdown = 5;
+                adCloseBtn.innerText = `Wait... ${countdown}`;
+                adCloseBtn.style.cursor = 'not-allowed';
+                adCloseBtn.style.pointerEvents = 'none';
+                adCloseBtn.style.color = '#888';
+
+                const timer = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        adCloseBtn.innerText = `Wait... ${countdown}`;
+                    } else {
+                        clearInterval(timer);
+                        adCloseBtn.innerText = '✕ CLOSE';
+                        adCloseBtn.style.cursor = 'pointer';
+                        adCloseBtn.style.pointerEvents = 'auto';
+                        adCloseBtn.style.color = '#fff';
+                    }
+                }, 1000);
+
+                // 유저가 광고의 X 버튼을 눌렀을 때
+                adCloseBtn.onclick = () => {
+                    playSfx('sfx-click');
+                    adModal.classList.remove('active'); // 광고 껍데기만 치우기
+                    adClosed = true;
+
+                    // 이미 AI가 끝났다면 뒤에 준비된 결과창을 바로 짠! 하고 보여줌
+                    if (aiFinished) {
+                        if (apiError) handleError(apiError);
+                        else swapToResult(); 
+                    }
+                    // 아직 AI가 안 끝났다면 아무것도 안 함 -> 
+                    // 광고가 치워졌으니 밑에 있던 '정원사가 읽고 있습니다'가 자연스럽게 다시 노출됨!
+                };
+            }, 2000); // <-- 이 2초가 감성 타이밍을 보장합니다.
+
+
+            // 5. [데이터 통신 흐름] 시간 낭비 없이 백그라운드에서 즉시 실행
+            (async () => {
+                try {
+                    const result = await realAnalyzeDiary(text);
+                    currentLastResult = result;
+                    dailyDiaryCount++;
+
+                    const newDiaryObj = {
+                        content: text,
+                        ai_reply: result.comment,
+                        stat_increase: result.points,
+                        date_str: todayStr,
+                        timestamp: isGuestMode ? null : firebase.firestore.FieldValue.serverTimestamp() 
+                    };
+
+                    // --- 기존 데이터베이스 저장 로직 ---
+                    if (isGuestMode) {
+                        cachedDiaries.unshift({ ...newDiaryObj, timestamp: { toDate: () => new Date() } }); 
+                        const saveToLocal = cachedDiaries.map(d => ({
+                            content: d.content, ai_reply: d.ai_reply, stat_increase: d.stat_increase, date_str: d.date_str
+                        }));
+                        localStorage.setItem('geulsup_guest_diaries', JSON.stringify(saveToLocal));
+                        localStorage.setItem('geulsup_guest_last_date', todayStr);
+                        localStorage.setItem('geulsup_guest_daily_count', dailyDiaryCount.toString());
+
+                        for (const [virtue, score] of Object.entries(result.points)) {
+                            if (score > 0) currentPoints[virtue] += score;
+                        }
+                        localStorage.setItem('geulsup_guest_points', JSON.stringify(currentPoints));
+
+                    } else {
+                        await db.collection('users').doc(currentUser.uid).collection('diaries').add(newDiaryObj);
+                        const userRef = db.collection('users').doc(currentUser.uid);
+                        
+                        const updateData = { last_diary_date: todayStr, daily_diary_count: dailyDiaryCount };
+                        for (const [virtue, score] of Object.entries(result.points)) {
+                            if (score > 0) updateData[`total_points.${virtue}`] = firebase.firestore.FieldValue.increment(score);
+                        }
+                        await userRef.update(updateData);
+                        cachedDiaries.unshift({ ...newDiaryObj, timestamp: { toDate: () => new Date() } });
+                    }
+                    // ------------------------------------
+
+                    // 통신 완료! 화면에 보이지는 않지만 결과창 내용물을 미리 싹 채워둠 (뒤에서 준비 완료)
+                    resultPointUpArea.innerHTML = '';
+                    virtues.forEach((v, index) => {
+                        const p = result.points[v] || 0;
+                        if (p > 0) {
+                            if (!isGuestMode) currentPoints[v] += p;
+                            islandData[v].logs.unshift({ date: '방금 전', text: text });
+                            
+                            const badge = document.createElement('div');
+                            badge.classList.add('point-badge', `badge-${v}`);
+                            badge.innerText = `${v.toUpperCase()} +${p}`;
+                            badge.style.animationDelay = `${0.8 + (index * 0.1)}s`;
+                            resultPointUpArea.appendChild(badge);
+
+                            const slider = document.getElementById(`rng-${v}`);
+                            const display = document.getElementById(`val-${v}`);
+                            if (slider) slider.value = currentPoints[v];
+                            if (display) display.innerText = currentPoints[v];
+                            updateIslandVisual(v, currentPoints[v]);
+                        }
+                    });
+                    resultComment.innerText = result.comment;
+
+                    aiFinished = true; // AI 다 끝남 도장 쾅!
+
+                    // 만약 유저가 이미 5초 광고를 다 보고 꺼버려서 대기 중인 상태라면? 
+                    // 기다리게 하지 말고 완성된 결과창을 띄워줌
+                    if (adClosed) {
+                        swapToResult();
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    aiFinished = true;
+                    apiError = err;
+                    if (adClosed) {
+                        handleError(err);
+                    }
+                }
+            })(); // 비동기 즉시 실행 함수로 묶어서 타이머와 완전 독립시켰습니다.
         });
 
         // 날짜 문자열 반환 함수
