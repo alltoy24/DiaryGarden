@@ -1889,8 +1889,47 @@
         const seasonActions = document.getElementById('season-actions');
         const seasonResetBtn = document.getElementById('season-reset-btn');
 
-        let isGuestMode = false; // 게스트 모드 판별 플래그
+        let currentUser = null;
+        let currentPoints = { courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0 };
+        let currentLastResult = null;
+        let dailyDiaryCount = 0; 
+        let lastDiaryDate = "";
+        
+        const virtueColors = {
+            courage: '#ff6b6b', wisdom: '#4db8ff', kindness: '#ff85a2',
+            diligence: '#2ecc71', serenity: '#81ecec'
+        };
+        const virtues = ['courage', 'wisdom', 'kindness', 'diligence', 'serenity'];
+
+        let isGuestMode = localStorage.getItem('geulsup_is_guest') === 'true'; // 게스트 모드 유지 확인
         const guestLoginBtn = document.getElementById('guest-login-btn');
+
+        if (isGuestMode) {
+            currentUser = { uid: 'guest', isAnonymous: true };
+            document.getElementById('google-login-btn').style.display = 'none';
+            document.getElementById('guest-login-btn').style.display = 'none';
+            document.getElementById('logout-btn').style.display = 'block';
+
+            const savedNickname = localStorage.getItem('geulsup_guest_nickname');
+            if (savedNickname) {
+                showEnterButton(savedNickname + " (Guest)");
+                
+                // 데이터 즉시 로드!
+                loadAllDiaries('guest');
+                loadGuestPoints(); 
+                
+                const todayStr = getTodayStr();
+                if (localStorage.getItem('geulsup_guest_last_date') === todayStr) {
+                    dailyDiaryCount = parseInt(localStorage.getItem('geulsup_guest_daily_count') || '0');
+                } else {
+                    dailyDiaryCount = 0;
+                    localStorage.setItem('geulsup_guest_last_date', todayStr);
+                    localStorage.setItem('geulsup_guest_daily_count', '0');
+                }
+                lastDiaryDate = todayStr;
+                updateSubmitButtonText();
+            }
+        }
 
         // 1. 게스트 버튼 클릭 시 -> 모달 띄우기
         guestLoginBtn.addEventListener('click', () => {
@@ -1911,6 +1950,7 @@
 
             // --- 여기서부터 기존 게스트 로그인 로직 실행 ---
             isGuestMode = true;
+            localStorage.setItem('geulsup_is_guest', 'true');
             currentUser = { uid: 'guest', isAnonymous: true };
             
             // UI 변경
@@ -2660,8 +2700,6 @@
         const nicknameInput = document.getElementById('nickname-input');
         const nicknameSubmitBtn = document.getElementById('nickname-submit-btn');
 
-        let currentUser = null; // 현재 로그인한 유저 정보
-
         // --- 3. 구글 로그인 버튼 클릭 ---
         googleLoginBtn.addEventListener('click', () => {
             const provider = new firebase.auth.GoogleAuthProvider();
@@ -2776,17 +2814,24 @@
         });
 
         function openProfileModal() {
-            if (currentUser) {
+            // 1. [핵심 수정] 닉네임 & 가입일 세팅 (게스트 vs 회원 분기 처리)
+            if (isGuestMode) {
+                // 게스트면 로컬스토리지에서 이름을 가져옵니다.
+                const guestName = localStorage.getItem('geulsup_guest_nickname') || '여행자';
+                document.getElementById('profile-nickname').innerText = guestName + " (Guest)";
+                document.getElementById('profile-join-date').innerText = "기록이 브라우저에 저장되는 손님입니다.";
+            } else if (currentUser && currentUser.uid !== 'guest') {
+                // 회원이면 Firebase에서 이름을 가져옵니다.
                 db.collection('users').doc(currentUser.uid).get().then(doc => {
                     if(doc.exists) {
                         document.getElementById('profile-nickname').innerText = doc.data().nickname;
                         const joinDate = doc.data().createdAt ? doc.data().createdAt.toDate() : new Date();
                         document.getElementById('profile-join-date').innerText = `Since ${joinDate.getFullYear()}. ${String(joinDate.getMonth() + 1).padStart(2, '0')}. ${String(joinDate.getDate()).padStart(2, '0')}.`;
                     }
-                });
+                }).catch(err => console.error("프로필 로드 에러:", err));
             }
 
-            // [핵심] 실시간 합산 데이터 가져오기
+            // 2. [기존 기능 유지] 실시간 합산 데이터 가져오기 및 바 그래프 렌더링
             const monthlyStats = getCalculatedMonthlyStats();
             const maxVal = Math.max(...Object.values(monthlyStats), 10);
 
@@ -3010,7 +3055,8 @@
 
             if (confirm(msg)) {
                 if (isGuestMode) {
-                    location.reload(); // 그냥 새로고침
+                    localStorage.removeItem('geulsup_is_guest'); // ★ [추가] 로그아웃 시 기억 지우기!
+                    location.reload(); 
                 } else {
                     auth.signOut().then(() => location.reload());
                 }
@@ -3063,28 +3109,22 @@
             }
         });
 
-        // --- 6. 입장 버튼 활성화 함수 ---
         function showEnterButton(nickname) {
-            enterButton.style.display = 'block';
-            enterButton.style.animation = 'fadeInUp 1s ease forwards';
+            // 위에서 변수가 선언되길 기다리지 않고 여기서 직접 HTML 요소를 찾습니다.
+            const enterBtnEl = document.getElementById('enter-btn');
+            const greetingEl = document.getElementById('user-greeting');
             
-            userGreeting.innerText = `환영합니다, ${nickname}님.`;
-            userGreeting.style.opacity = '1';
-            userGreeting.style.transition = 'opacity 1s ease';
+            if (enterBtnEl) {
+                enterBtnEl.style.display = 'block';
+                enterBtnEl.style.animation = 'fadeInUp 1s ease forwards';
+            }
+            
+            if (greetingEl) {
+                greetingEl.innerText = `환영합니다, ${nickname}님.`;
+                greetingEl.style.opacity = '1';
+                greetingEl.style.transition = 'opacity 1s ease';
+            }
         }
-
-        // 누적 점수 상태 관리
-        let currentPoints = {
-            courage: 0, wisdom: 0, kindness: 0, diligence: 0, serenity: 0
-        };
-
-        let currentLastResult = null;
-
-        const virtueColors = {
-            courage: '#ff6b6b', wisdom: '#4db8ff', kindness: '#ff85a2',
-            diligence: '#2ecc71', serenity: '#81ecec'
-        };
-
         // 더미 데이터 (나중엔 실제 일기 데이터와 연동)
         const islandData = {
             'wisdom': { 
@@ -3535,9 +3575,6 @@
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         }
 
-        let dailyDiaryCount = 0; // 오늘 쓴 횟수
-        let lastDiaryDate = getTodayStr(); // 마지막으로 일기를 쓴(접속한) 날짜
-
         // 일기 작성 버튼 남은 횟수 업데이트 함수
         function updateSubmitButtonText() {
             const remaining = Math.max(0, 2 - dailyDiaryCount); // 남은 횟수 계산 (최소 0)
@@ -3711,7 +3748,6 @@
         }
 
         // [NEW] 슬라이더 이벤트 리스너 등록
-        const virtues = ['courage', 'wisdom', 'kindness', 'diligence', 'serenity'];
         virtues.forEach(v => {
             const slider = document.getElementById(`rng-${v}`);
             const display = document.getElementById(`val-${v}`);
