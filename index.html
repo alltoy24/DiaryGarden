@@ -3338,7 +3338,10 @@
         diaryOpenBtn.addEventListener('click', () => {
             playSfx('sfx-click');
             
-            // ★ 실시간 날짜 변경 체크 (브라우저를 밤새 켜뒀을 경우 대비)
+            // ★ [추가] 일기장 열 때 햄버거 메뉴 숨기기 (터치 방지)
+            if (menuToggleBtn) menuToggleBtn.classList.remove('visible');
+
+            // ★ 실시간 날짜 변경 체크 
             const todayStr = getTodayStr();
             if (lastDiaryDate !== todayStr) {
                 dailyDiaryCount = 0;
@@ -3353,6 +3356,19 @@
                 diaryModal.classList.add('active'); // 일기장 띄우기
                 const now = new Date();
                 diaryDateDisplay.innerText = `${now.getFullYear()}. ${String(now.getMonth()+1).padStart(2,'0')}. ${String(now.getDate()).padStart(2,'0')}. ${['SUN','MON','TUE','WED','THU','FRI','SAT'][now.getDay()]}`;
+            }
+        });
+
+        // 닫을 때 다시 햄버거 메뉴 살리기
+        diaryCloseX.addEventListener('click', () => { 
+            diaryModal.classList.remove('active'); 
+            if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구
+        });
+
+        diaryModal.addEventListener('click', (e) => {
+            if (e.target === diaryModal) {
+                diaryModal.classList.remove('active');
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구
             }
         });
 
@@ -3434,6 +3450,7 @@
             const handleError = (err) => {
                 alert("일기 저장 중 오류가 발생했습니다: " + err.message);
                 resultModalContainer.classList.remove('active');
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 에러 났을 때 탈출구 복구
                 diarySubmitBtn.disabled = false;
                 updateSubmitButtonText();
             };
@@ -3592,13 +3609,18 @@
         limitCloseX.addEventListener('click', () => {
             playSfx('sfx-click');
             limitModal.classList.remove('active');
+            if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구
         });
         limitModal.addEventListener('click', (e) => {
-            if (e.target === limitModal) limitModal.classList.remove('active');
+            if (e.target === limitModal) {
+                limitModal.classList.remove('active');
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구
+            }
         });
 
         resultCloseBtn.addEventListener('click', () => {
             resultModal.classList.remove('active');
+            if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구 완료!
 
             // 이제 currentLastResult가 정의되어 에러가 나지 않습니다!
             if (!currentLastResult) return;
