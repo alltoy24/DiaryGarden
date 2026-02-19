@@ -2703,27 +2703,32 @@
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth();
 
-            if (isGuestMode) {
-                // [Guest] 로컬스토리지에서 가져오기
+            // [수정] 게스트 모드면 Firebase 근처에도 안 가고 로컬스토리지에서 끝냄
+            if (isGuestMode || uid === 'guest') {
                 const localData = localStorage.getItem('geulsup_guest_diaries');
                 if (localData) {
-                    cachedDiaries = JSON.parse(localData);
-                    // 타임스탬프 문자열을 Date 객체로 복원해줘야 함 (필수!)
-                    cachedDiaries.forEach(d => {
-                        // 로컬 저장은 timestamp 함수가 없으므로 직접 변환
-                        d.timestamp = { toDate: () => new Date(d.date_str) };
-                    });
+                    try {
+                        cachedDiaries = JSON.parse(localData);
+                        cachedDiaries.forEach(d => {
+                            // UI 호환성을 위해 가짜 toDate 함수 생성
+                            if (!d.timestamp || typeof d.timestamp.toDate !== 'function') {
+                                d.timestamp = { toDate: () => new Date(d.date_str || Date.now()) };
+                            }
+                        });
+                    } catch(e) { console.error("LocalData Parse Error", e); }
                 }
             } else {
-                // [Member] Firebase에서 가져오기 (기존 코드)
+                // [수정] 회원일 때만 Firebase 호출
                 try {
                     const snapshot = await db.collection('users').doc(uid).collection('diaries')
                         .orderBy('timestamp', 'desc').limit(300).get();
                     snapshot.forEach(doc => cachedDiaries.push(doc.data()));
-                } catch (err) { console.error(err); }
+                } catch (err) { 
+                    console.error("Firebase 로딩 실패 (권한 없음은 무시해도 됨):", err); 
+                }
             }
 
-            // 이번 달 데이터 필터링 (공통 로직)
+            // 공통 필터링 로직 (이번 달 일기 분류)
             cachedDiaries.forEach(data => {
                 let dDate = null;
                 if(data.timestamp && typeof data.timestamp.toDate === 'function') dDate = data.timestamp.toDate();
@@ -2734,7 +2739,7 @@
                 }
             });
             
-            console.log(`모드: ${isGuestMode ? 'Guest' : 'User'}, 로드된 일기: ${cachedDiaries.length}개`);
+            console.log(`모드: ${isGuestMode ? 'Guest' : 'User'}, 데이터 로드 완료`);
         }
 
         function openDetailModal(data, dateStr) {
