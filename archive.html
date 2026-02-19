@@ -34,22 +34,35 @@
         }
         #page-transition.fade-out { opacity: 0; pointer-events: none; }
 
-        .ancient-symbol { width: 60px; height: 80px; position: relative; margin-bottom: 30px; perspective: 600px; }
+        .ancient-symbol { 
+            width: 60px; height: 80px; position: relative; margin-bottom: 30px; perspective: 600px; 
+        }
+
         .book-cover {
             width: 100%; height: 100%; border: 2px solid #d4af37; border-radius: 2px 6px 6px 2px;
             background: rgba(212, 175, 55, 0.05); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
-            position: absolute; animation: bookPulse 2.5s infinite ease-in-out;
+            position: absolute; 
+            transform-origin: left center; /* 💡 책등(왼쪽)을 축으로 열리게 고정 */
+            animation: bookPulse 2.5s infinite ease-in-out;
         }
+
         .book-page {
             width: 90%; height: 94%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-            position: absolute; top: 3%; left: 5%; opacity: 0.3; animation: pageShine 3s infinite linear;
+            position: absolute; top: 3%; left: 5%; 
+            transform-origin: left center; /* 💡 안쪽 페이지도 같은 축으로 고정 */
+            opacity: 0; 
+            animation: pageShine 2.5s infinite ease-in-out; /* 💡 표지와 동일하게 2.5초, 부드러운 타이밍으로 통일! */
         }
+
         @keyframes bookPulse {
             0%, 100% { transform: rotateY(0deg); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); border-color: #d4af37; }
-            50% { transform: rotateY(-15deg); box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); border-color: #fff; }
+            50% { transform: rotateY(-30deg); box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); border-color: #fff; } /* 각도를 살짝 더 열어줌 */
         }
-        @keyframes pageShine { 0% { transform: translateX(-10px); opacity: 0; } 50% { opacity: 0.8; } 100% { transform: translateX(10px); opacity: 0; } }
 
+        @keyframes pageShine { 
+            0%, 100% { transform: rotateY(0deg) translateX(0); opacity: 0; } 
+            50% { transform: rotateY(-15deg) translateX(10px); opacity: 0.8; } /* 표지가 열릴 때 페이지도 따라 열리며 빛남 */
+        }
         /* [3. 배경 (Memory Void)] */
         #world-container { position: fixed; width: 100%; height: 100%; z-index: 0; }
         #void-bg { position: absolute; width: 100%; height: 100%; background: radial-gradient(circle at 50% 120%, #1a0b2e 0%, #000000 60%); }
@@ -385,7 +398,7 @@
 
     <div id="page-transition">
         <div class="ancient-symbol"><div class="book-cover"></div><div class="book-page"></div></div>
-        <div style="margin-top:20px; color:#d4af37; font-family:'Nanum Myeongjo'; font-size:1.1rem; letter-spacing: 0.2rem; text-shadow: 0 0 10px rgba(212,175,55,0.5);">기억의 심연을 건너는 중...</div>
+        <div style="color:#d4af37; font-family:'Nanum Myeongjo'; font-size:1.1rem; letter-spacing: 0.2rem; text-shadow: 0 0 10px rgba(212,175,55,0.5);">기억의 심연을 건너는 중...</div>
     </div>
 
     <div id="stage-container">

@@ -1169,13 +1169,6 @@
             transform: scale(1); opacity: 1;
         }
 
-        /* 고대 심볼 (빛나는 책 아이콘) - CSS로 그리기 */
-        .ancient-symbol {
-            width: 60px; height: 80px;
-            position: relative; margin-bottom: 30px;
-            perspective: 600px;
-        }
-
         .book-cover {
             width: 100%; height: 100%;
             border: 2px solid #d4af37; border-radius: 2px 6px 6px 2px;
@@ -1193,22 +1186,34 @@
             animation: pageShine 3s infinite linear;
         }
 
-        .transition-text {
-            font-family: 'Nanum Myeongjo', serif; color: #d4af37;
-            font-size: 1.1rem; letter-spacing: 0.3rem;
-            text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
-            animation: textFade 2s infinite alternate;
+        .ancient-symbol { 
+            width: 60px; height: 80px; position: relative; margin-bottom: 30px; perspective: 600px; 
         }
 
-        /* 애니메이션 정의 */
+        .book-cover {
+            width: 100%; height: 100%; border: 2px solid #d4af37; border-radius: 2px 6px 6px 2px;
+            background: rgba(212, 175, 55, 0.05); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+            position: absolute; 
+            transform-origin: left center; /* 💡 책등(왼쪽)을 축으로 열리게 고정 */
+            animation: bookPulse 2.5s infinite ease-in-out;
+        }
+
+        .book-page {
+            width: 90%; height: 94%; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            position: absolute; top: 3%; left: 5%; 
+            transform-origin: left center; /* 💡 안쪽 페이지도 같은 축으로 고정 */
+            opacity: 0; 
+            animation: pageShine 2.5s infinite ease-in-out; /* 💡 표지와 동일하게 2.5초, 부드러운 타이밍으로 통일! */
+        }
+
         @keyframes bookPulse {
             0%, 100% { transform: rotateY(0deg); box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); border-color: #d4af37; }
-            50% { transform: rotateY(-10deg); box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); border-color: #fff; }
+            50% { transform: rotateY(-30deg); box-shadow: 0 0 40px rgba(212, 175, 55, 0.6); border-color: #fff; } /* 각도를 살짝 더 열어줌 */
         }
-        @keyframes pageShine {
-            0% { transform: translateX(-10px); opacity: 0; }
-            50% { opacity: 0.8; }
-            100% { transform: translateX(10px); opacity: 0; }
+
+        @keyframes pageShine { 
+            0%, 100% { transform: rotateY(0deg) translateX(0); opacity: 0; } 
+            50% { transform: rotateY(-15deg) translateX(10px); opacity: 0.8; } /* 표지가 열릴 때 페이지도 따라 열리며 빛남 */
         }
         @keyframes textFade {
             from { opacity: 0.4; } to { opacity: 1; }
@@ -2241,7 +2246,6 @@
         tutNextBtn.addEventListener('click', () => {
             playSfx('sfx-click');
 
-            // ★ 스포트라이트 이동 타이밍에 맞춰 재생하는 도우미 함수
             const playDelayedSfx = (sfxId, vol = 1.0) => {
                 setTimeout(() => { playSfx(sfxId, vol); }, 650);
             };
@@ -2253,32 +2257,48 @@
             }
             else if (tutorialStep === 3) {
                 tutorialStep = 4;
-                moveSpotlight(diaryCloseX, "창 닫기", 
-                    "작성을 마치거나 취소하고 싶을 때는<br>이 버튼을 눌러 정원으로 돌아갑니다.<br><br>" +
+                moveSpotlight(diaryCloseX, "창 닫기", "작성을 마치거나 취소하고 싶을 때는<br>이 버튼을 눌러 정원으로 돌아갑니다.", 30);
+                playDelayedSfx('sfx-tut-3', 1.0);
+            }
+            // ★ 새로 추가된 4 -> 5단계 전환 로직
+            else if (tutorialStep === 4) {
+                tutorialStep = 5;
+                
+                // 1. 일기장을 강제로 부드럽게 닫기
+                diaryModal.classList.remove('active');
+                
+                // 2. 숨겨뒀던 메뉴 버튼 등장시키기
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible');
+                
+                // 3. z-index 방패 정리 (일기장에서 쓰던 모달용 최상단 해제)
+                tutBlocker.classList.remove('modal-top');
+                tutOverlay.classList.remove('modal-top');
+                tutText.classList.remove('modal-top');
+                
+                // 4. 메뉴 버튼 조준!
+                moveSpotlight(menuToggleBtn, "시스템 메뉴", 
+                    "우측 상단의 메뉴를 열어 내 프로필, 정원 설정, 그리고<br>과거의 기록이 담긴 <b>'역사관'</b>에 입장할 수 있습니다.<br><br>" +
                     "<span style='font-size: 0.85rem; color: #888; border-top: 1px solid #333; display: block; padding-top: 10px; margin-top: 10px;'>" +
-                    "💡 튜토리얼은 사이드바 메뉴 '도움말'을 클릭해 다시 확인할 수 있습니다.</span>", 
+                    "💡 튜토리얼은 언제든 메뉴의 '도움말'에서 다시 볼 수 있습니다.</span>", 
                     30
                 );
                 playDelayedSfx('sfx-tut-3', 1.0);
                 
-                // ★ 버튼 글자도 화면 이동이 완료될 때 스르륵 바뀌도록 딜레이 적용
+                // 5. 글자 변경
                 setTimeout(() => {
                     tutNextBtn.innerHTML = "FINISH ❯"; 
                 }, 650);
             }
-            else if (tutorialStep === 4) {
-                // 튜토리얼 완전 종료 및 싹 다 초기화
+            // ★ 5단계 종료 로직
+            else if (tutorialStep === 5) {
                 playSfx('sfx-clear', 0.5);
                 tutBlocker.classList.remove('active', 'modal-top');
                 tutOverlay.classList.remove('active', 'modal-top');
                 tutText.classList.remove('active', 'modal-top');
                 tutNextBtn.classList.remove('active');
                 
-                // 구멍 크기 원래대로 복구
-                tutOverlay.style.top = '50%';
-                tutOverlay.style.left = '50%';
-                tutOverlay.style.width = '200vw';
-                tutOverlay.style.height = '200vh';
+                tutOverlay.style.top = '50%'; tutOverlay.style.left = '50%';
+                tutOverlay.style.width = '200vw'; tutOverlay.style.height = '200vh';
 
                 isTutorialMode = false;
                 tutorialStep = 0;
@@ -2286,8 +2306,6 @@
                 
                 tutText.style.bottom = ''; tutText.style.left = '';
                 tutText.style.transform = ''; 
-                
-                // 버튼 텍스트 초기화 (딜레이 없이 바로 넥스트로)
                 tutNextBtn.innerHTML = "NEXT ❯"; 
             }
         });
@@ -3623,20 +3641,19 @@
             }
         });
 
-        // 일기 창 닫기 이벤트들 통합 수정
         function closeDiaryWithTutorial() {
             diaryModal.classList.remove('active');
             
-            // 튜토리얼 중이었다면 텍스트도 같이 숨깁니다.
             if (isTutorialMode) {
                 tutText.classList.remove('active');
-                tutText.style.opacity = 0;
                 
-                if (tutorialStep === 2) {
-                    // 중도 포기 시 1단계로 복귀하는 로직 (기존 유지)
+                // 유저가 튜토리얼 도중(2, 3, 4단계)에 창을 맘대로 닫아버리면 
+                // 튜토리얼이 깨지지 않게 1단계부터 다시 시작시킴
+                if (tutorialStep >= 2 && tutorialStep <= 4) {
                     setTimeout(startTutorialStep1, 500); 
                 }
             } else {
+                // 평소(튜토리얼 아닐 때) 창 닫으면 메뉴 버튼 다시 보여주기
                 if (menuToggleBtn) menuToggleBtn.classList.add('visible'); 
             }
         }
