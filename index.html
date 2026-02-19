@@ -1338,6 +1338,74 @@
             visibility: visible !important; 
             pointer-events: auto; 
         }
+        /* 🔥 1. 투명한 클릭 방패 (클릭은 얘가 다 막음) 🔥 */
+        #tutorial-blocker {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 1499;
+            background: transparent;
+            pointer-events: none; /* 꺼져있을 땐 통과 */
+            display: none;
+        }
+        #tutorial-blocker.active {
+            display: block;
+            pointer-events: auto; /* 켜지면 다른 모든 클릭 완벽 차단 */
+        }
+        #tutorial-blocker.modal-top { z-index: 2499 !important; }
+
+        /* 🔥 2. 스포트라이트 시각 효과 (부드러운 비네팅과 이동) 🔥 */
+        #tutorial-overlay {
+            position: fixed;
+            z-index: 1500;
+            border-radius: 50%;
+            /* 핵심: 조명 가장자리에 강한 금빛 글로우 + 바깥쪽은 완전 암전 */
+            box-shadow: 
+                0 0 0 9999px rgba(0, 0, 0, 0.85), /* 바깥 어둠 */
+                0 0 30px 15px rgba(212, 175, 55, 0.4), /* 조명 테두리 금빛 광채 */
+                inset 0 0 50px rgba(212, 175, 55, 0.2); /* 안쪽에도 살짝 온기 추가 */
+            pointer-events: none !important;
+            opacity: 0;
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            transform: translate(-50%, -50%);
+        }
+        #tutorial-overlay.active { opacity: 1; }
+        #tutorial-overlay.modal-top { z-index: 2500 !important; }
+
+        /* 🔥 3. 1단계 버튼만 방패 위로 꺼내주는 마법의 클래스 🔥 */
+        .tut-z-up {
+            z-index: 3000 !important; 
+            /* UI가 뒤틀리지 않게 position은 절대 건드리지 않음! */
+        }
+
+        .tutorial-msg {
+            position: fixed;
+            z-index: 1501;
+            width: 280px; /* 너비를 고정하세요! */
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease; /* 위치 이동 애니메이션은 리사이즈 시 어지러우니 opacity만 */
+        }
+        .tutorial-msg.active { opacity: 1; transform: translateY(0); }
+        .tutorial-msg.modal-top { z-index: 2501 !important; }
+
+        .tut-title { font-family: 'Nanum Myeongjo', serif; color: #d4af37; font-size: 1.5rem; margin-bottom: 10px; text-shadow: 0 0 15px rgba(212, 175, 55, 0.8); }
+        .tut-desc { font-family: 'Nanum Myeongjo', serif; color: #ccc; font-size: 1rem; line-height: 1.6; }
+
+        /* NEXT 버튼 */
+        #tutorial-next-btn {
+            position: fixed; bottom: 50px; right: 50px; z-index: 3000;
+            background: rgba(10, 12, 15, 0.95); border: 1px solid #d4af37; color: #d4af37;
+            font-family: 'Cinzel', serif; font-size: 1.1rem; letter-spacing: 0.2rem;
+            padding: 12px 30px; cursor: pointer; opacity: 0; visibility: hidden;
+            transition: all 0.4s ease; box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+        }
+        #tutorial-next-btn.active { opacity: 1; visibility: visible; pointer-events: auto; }
+        #tutorial-next-btn:hover { background: rgba(212, 175, 55, 0.1); color: #fff; box-shadow: 0 0 30px rgba(212, 175, 55, 0.5); }
+                
+        .tut-desc {
+            word-break: keep-all; /* 단어 단위로 줄바꿈되어 깔끔해짐 */
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1351,6 +1419,13 @@
     <audio id="sfx-ambiance" src="SFX/ambiance.mp3" loop></audio>
     <audio id="sfx-result" src="SFX/result.mp3"></audio>
     <audio id="sfx-hit" src="SFX/hit.mp3"></audio>
+    <audio id="sfx-tut-1" src="SFX/tut_early.mp3"></audio> <audio id="sfx-tut-2" src="SFX/tut_mid.mp3"></audio>   <audio id="sfx-tut-3" src="SFX/tut_late.mp3"></audio> <div id="tutorial-blocker"></div> <div id="tutorial-overlay"></div>
+    <div id="tutorial-text" class="tutorial-msg">
+        <span class="tut-title">정원에 오신 것을 환영합니다.</span>
+        <span class="tut-desc">먼저, 우측 하단의 버튼을 눌러 당신의 첫 이야기를 심어보세요.</span>
+    </div>
+
+    <button id="tutorial-next-btn">NEXT ❯</button>
 
     <div id="dev-panel">
         <h3>🌱 정원사 모드 (Point Controller)</h3>
@@ -1809,6 +1884,8 @@
 
     <script>
         const canvas = document.getElementById('particle-canvas');
+        const tutBlocker = document.getElementById('tutorial-blocker');
+        const tutNextBtn = document.getElementById('tutorial-next-btn');
         const ctx = canvas.getContext('2d');
         const worldContainer = document.getElementById('world-container');
         const uiLayer = document.getElementById('ui-layer');
@@ -1827,11 +1904,18 @@
         const detailModal = document.getElementById('diary-detail-modal');
         const detailCloseX = document.getElementById('detail-close-x');
         const menuToggleBtn = document.getElementById('menu-toggle-btn');
+        const helpLink = document.querySelector('.menu-list li:nth-child(4) a'); // '도움말'이 4번째 리스트일 경우
         const mainMenuSidebar = document.getElementById('main-menu-sidebar');
         const profileModal = document.getElementById('profile-modal');
         const profileCloseX = document.getElementById('profile-close-x');
         const profileLink = document.querySelector('.menu-list li:first-child a');
         const logoutBtn = document.getElementById('logout-btn');
+        let isTutorialMode = false;
+        let currentTargetForTutorial = null;
+        let currentTutorialData = { title: "", desc: "" };
+        let tutorialStep = 0;
+        const tutOverlay = document.getElementById('tutorial-overlay');
+        const tutText = document.getElementById('tutorial-text');
 
         const audioHover = document.getElementById('sfx-hover');
         const audioClick = document.getElementById('sfx-click');
@@ -1852,6 +1936,23 @@
         }
         window.addEventListener('resize', resize); 
         resize(); // 즉시 실행해서 width값을 채워넣습니다.
+
+        if (helpLink) {
+            helpLink.addEventListener('click', (e) => {
+                e.preventDefault(); // 페이지 이동 방지
+                playSfx('sfx-click');
+
+                // 1. 사이드바와 메뉴 버튼 상태 초기화 (닫기)
+                mainMenuSidebar.classList.remove('active');
+                menuToggleBtn.classList.remove('open');
+
+                // 2. 만약 이미 튜토리얼 완료 상태였더라도 강제로 다시 시작
+                // (localStorage 값은 지우지 않아도 함수만 실행하면 됩니다)
+                setTimeout(() => {
+                    startTutorialStep1(); 
+                }, 500); // 메뉴가 닫히는 애니메이션 뒤에 시작
+            });
+        }
 
         // --- 요소 선택 ---
         const diaryOpenBtn = document.getElementById('diary-open-btn');
@@ -2042,6 +2143,136 @@
             });
             return stats;
         }
+
+        function moveSpotlight(targetElement, titleStr, descStr, radiusPadding = 40) {
+            if (!targetElement) return;
+            currentTargetForTutorial = targetElement;
+            currentTutorialData = { title: titleStr, desc: descStr };
+
+            tutText.classList.remove('active');
+            
+            setTimeout(() => {
+                tutText.querySelector('.tut-title').innerText = titleStr;
+                tutText.querySelector('.tut-desc').innerHTML = descStr;
+
+                const rect = targetElement.getBoundingClientRect();
+                const targetCenterX = rect.left + (rect.width / 2);
+                const targetCenterY = rect.top + (rect.height / 2);
+                const size = Math.max(rect.width, rect.height) + (radiusPadding * 2);
+
+                // 1. 스포트라이트 이동
+                tutOverlay.style.top = `${targetCenterY}px`;
+                tutOverlay.style.left = `${targetCenterX}px`;
+                tutOverlay.style.width = `${size}px`;
+                tutOverlay.style.height = `${size}px`;
+
+                // 2. 텍스트 위치 계산
+                let textTop, textLeft;
+                const textWidth = 280;
+                const nextBtnSafetyZone = 180; // Next 버튼으로부터 떨어질 최소 거리
+
+                // 가로 위치: 화면 중앙 기준
+                if (targetCenterX > window.innerWidth / 2) {
+                    textLeft = targetCenterX - (size / 2) - textWidth - 30;
+                    tutText.style.alignItems = 'flex-end';
+                    tutText.style.textAlign = 'right';
+                } else {
+                    textLeft = targetCenterX + (size / 2) + 30;
+                    tutText.style.alignItems = 'flex-start';
+                    tutText.style.textAlign = 'left';
+                }
+
+                // [핵심] 세로 위치 결정 (Next 버튼 회피 로직)
+                // 만약 타겟이 화면 하단에 있다면?
+                if (targetCenterY > window.innerHeight - 250) {
+                    // 아래에 Next 버튼이 있으니 위로 올림
+                    textTop = targetCenterY - (size / 2) - 150; 
+                } else {
+                    // 그 외에는 타겟 옆에 나란히 배치
+                    textTop = targetCenterY - 50;
+                }
+
+                // 화면 밖 탈출 방지 (상단 마진 확보)
+                textTop = Math.max(80, Math.min(window.innerHeight - 200, textTop));
+                textLeft = Math.max(20, Math.min(window.innerWidth - textWidth - 20, textLeft));
+
+                // 스타일 적용
+                tutText.style.top = `${textTop}px`;
+                tutText.style.left = `${textLeft}px`;
+                tutText.style.right = 'auto';
+                tutText.style.bottom = 'auto';
+                tutText.style.transform = 'none';
+
+                tutText.classList.add('active');
+            }, 650);
+        }
+
+        // 🔥 1단계 시작 (서서히 어둠이 깔리며 조준)
+        function startTutorialStep1() {
+            isTutorialMode = true;
+            tutorialStep = 1;
+            playSfx('sfx-tut-1', 1.2); 
+
+            // 클릭 방어막 가동!
+            tutBlocker.classList.add('active');
+            
+            // 처음에 200vw 크기의 거대한 오버레이가 스르륵 생겨남 (확 튀어나옴 방지)
+            tutOverlay.classList.add('active');
+            tutText.classList.add('active');
+
+            // 일기 쓰기 버튼만 방패 위로 꺼냄 (이것 때문에 클릭이 무조건 됩니다)
+            diaryOpenBtn.classList.add('tut-z-up'); 
+            if (menuToggleBtn) menuToggleBtn.classList.remove('visible');
+
+            // 0.1초 뒤에 거대했던 구멍이 버튼 크기에 맞춰 샥~ 좁혀짐
+            setTimeout(() => {
+                moveSpotlight(diaryOpenBtn, "정원에 오신 것을 환영합니다.", "먼저, 우측 하단의 버튼을 눌러<br>당신의 첫 이야기를 심어보세요.", 40);
+            }, 100); 
+        }
+
+        tutNextBtn.addEventListener('click', () => {
+            playSfx('sfx-click');
+
+            if (tutorialStep === 2) {
+                tutorialStep = 3;
+                playSfx('sfx-tut-2');
+                // 여기서 타겟을 'diarySubmitBtn'으로 잡으면 
+                // 위에서 만든 회피 로직이 작동해서 Next 버튼을 안 가리게 됩니다.
+                moveSpotlight(diarySubmitBtn, "나무 심기 (기록 제출)", "기록이 끝나면 이 버튼을 눌러주세요.<br>작성한 글은 정원의 양분이 됩니다.", 20);
+            }
+            else if (tutorialStep === 3) {
+                tutorialStep = 4;
+                playSfx('sfx-tut-3', 1.0);
+                moveSpotlight(diaryCloseX, "창 닫기", 
+                    "작성을 마치거나 취소하고 싶을 때는<br>이 버튼을 눌러 정원으로 돌아갑니다.<br><br>" +
+                    "<span style='font-size: 0.85rem; color: #888; border-top: 1px solid #333; display: block; padding-top: 10px; margin-top: 10px;'>" +
+                    "💡 튜토리얼은 사이드바 메뉴 '도움말'을 클릭해 다시 확인할 수 있습니다.</span>", 
+                    30
+                );
+                tutNextBtn.innerHTML = "FINISH ❯"; 
+            }
+            else if (tutorialStep === 4) {
+                // 튜토리얼 완전 종료 및 싹 다 초기화
+                playSfx('sfx-clear', 0.5);
+                tutBlocker.classList.remove('active', 'modal-top');
+                tutOverlay.classList.remove('active', 'modal-top');
+                tutText.classList.remove('active', 'modal-top');
+                tutNextBtn.classList.remove('active');
+                
+                // 구멍 크기 원래대로 복구
+                tutOverlay.style.top = '50%';
+                tutOverlay.style.left = '50%';
+                tutOverlay.style.width = '200vw';
+                tutOverlay.style.height = '200vh';
+
+                isTutorialMode = false;
+                tutorialStep = 0;
+                localStorage.setItem('geulsup_tutorial_done', 'true'); 
+                
+                tutText.style.bottom = ''; tutText.style.left = '';
+                tutText.style.transform = ''; tutNextBtn.innerHTML = "NEXT ❯"; 
+            }
+        });
 
         // [1] 설정 저장 함수 (LocalStorage)
         function saveSettings() {
@@ -3337,11 +3568,25 @@
 
         diaryOpenBtn.addEventListener('click', () => {
             playSfx('sfx-click');
-            
-            // ★ [추가] 일기장 열 때 햄버거 메뉴 숨기기 (터치 방지)
+
+            if (isTutorialMode && tutorialStep === 1) {
+                tutorialStep = 2;
+                diaryOpenBtn.classList.remove('tut-z-up'); 
+                
+                tutBlocker.classList.add('modal-top');
+                tutOverlay.classList.add('modal-top');
+                tutText.classList.add('modal-top'); // 텍스트도 레이어 위로
+                
+                // 모달창이 스르륵 뜨는 시간을 벌어준 뒤 스포트라이트 이동
+                setTimeout(() => {
+                    tutNextBtn.classList.add('active'); 
+                    playSfx('sfx-tut-2', 1.0);
+                    moveSpotlight(diaryTextarea, "기억의 파편", "이곳에 오늘 있었던 일이나 감정을 적습니다.<br>최소 30자 이상 작성해야 합니다.", 40);
+                }, 850); // 모달 transition 시간과 맞춤
+            }
+
             if (menuToggleBtn) menuToggleBtn.classList.remove('visible');
 
-            // ★ 실시간 날짜 변경 체크 
             const todayStr = getTodayStr();
             if (lastDiaryDate !== todayStr) {
                 dailyDiaryCount = 0;
@@ -3349,26 +3594,60 @@
                 updateSubmitButtonText();
             }
 
-            // ★ 하루 2번 제한 체크
             if (dailyDiaryCount >= 2) {
-                limitModal.classList.add('active'); // 작성 제한 모달 띄우기
+                limitModal.classList.add('active');
             } else {
-                diaryModal.classList.add('active'); // 일기장 띄우기
+                diaryModal.classList.add('active');
                 const now = new Date();
                 diaryDateDisplay.innerText = `${now.getFullYear()}. ${String(now.getMonth()+1).padStart(2,'0')}. ${String(now.getDate()).padStart(2,'0')}. ${['SUN','MON','TUE','WED','THU','FRI','SAT'][now.getDay()]}`;
             }
         });
 
-        // 닫을 때 다시 햄버거 메뉴 살리기
-        diaryCloseX.addEventListener('click', () => { 
-            diaryModal.classList.remove('active'); 
-            if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구
+        // 일기 창 닫기 이벤트들 통합 수정
+        function closeDiaryWithTutorial() {
+            diaryModal.classList.remove('active');
+            
+            // 튜토리얼 중이었다면 텍스트도 같이 숨깁니다.
+            if (isTutorialMode) {
+                tutText.classList.remove('active');
+                tutText.style.opacity = 0;
+                
+                if (tutorialStep === 2) {
+                    // 중도 포기 시 1단계로 복귀하는 로직 (기존 유지)
+                    setTimeout(startTutorialStep1, 500); 
+                }
+            } else {
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible'); 
+            }
+        }
+
+        diaryCloseX.addEventListener('click', closeDiaryWithTutorial);
+        diaryModal.addEventListener('click', (e) => {
+            if (e.target === diaryModal) closeDiaryWithTutorial();
         });
 
+        diaryCloseX.addEventListener('click', () => { 
+            diaryModal.classList.remove('active'); 
+
+            // ★ [추가] 튜토리얼 중인데 일기를 안 쓰고 창을 닫았다면? -> 다시 1단계로 강제 복귀!
+            if (isTutorialMode && tutorialStep === 2) {
+                setTimeout(startTutorialStep1, 500); 
+            } else {
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible'); 
+            }
+        });
+
+        // 모달 밖 배경 클릭해서 닫을 때도 동일하게 처리
         diaryModal.addEventListener('click', (e) => {
             if (e.target === diaryModal) {
                 diaryModal.classList.remove('active');
-                if (menuToggleBtn) menuToggleBtn.classList.add('visible'); // ★ 복구
+                
+                // ★ [추가] 강제 복귀 로직
+                if (isTutorialMode && tutorialStep === 2) {
+                    setTimeout(startTutorialStep1, 500); 
+                } else {
+                    if (menuToggleBtn) menuToggleBtn.classList.add('visible'); 
+                }
             }
         });
 
@@ -4039,12 +4318,19 @@
                 allSceneObjects.forEach((obj) => { obj.classList.add('visible'); });
 
                 if (diaryOpenBtn) diaryOpenBtn.classList.add('visible');
-                if (menuToggleBtn) menuToggleBtn.classList.add('visible');
+                // (메뉴 버튼은 일단 visible을 보류)
+                if (menuToggleBtn && !isTutorialMode) menuToggleBtn.classList.add('visible'); 
 
                 cloudFloor.style.opacity = '1'; 
                 hudLayer.style.opacity = '1'; 
                 updateParallax(); 
-            }, isInstant ? 100 : 1000); 
+
+                // ★ [추가] 총 포인트가 모두 0이면 신규 유저로 간주하고 튜토리얼 시작!
+                const isNewUser = Object.values(currentPoints).every(val => val === 0);
+                if (isNewUser && !localStorage.getItem('geulsup_tutorial_done')) {
+                    setTimeout(startTutorialStep1, 1500); // 월드 진입 후 1.5초 뒤 스르륵 켜짐
+                }
+            }, isInstant ? 100 : 1000);
 
             setTimeout(() => { uiLayer.style.display = 'none'; }, isInstant ? 150 : 1500);
         }
@@ -4095,6 +4381,36 @@
                 } else {
                     devPanel.style.display = 'block';
                 }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (isTutorialMode && currentTargetForTutorial) {
+                // 이미 떠있는 텍스트 데이터를 그대로 사용해서 위치만 재계산
+                const title = currentTutorialData.title;
+                const desc = currentTutorialData.desc;
+                
+                // 딜레이 없이 즉시 재계산 (0ms)
+                const rect = currentTargetForTutorial.getBoundingClientRect();
+                const targetCenterX = rect.left + (rect.width / 2);
+                const targetCenterY = rect.top + (rect.height / 2);
+                const size = Math.max(rect.width, rect.height) + 80;
+
+                tutOverlay.style.top = `${targetCenterY}px`;
+                tutOverlay.style.left = `${targetCenterX}px`;
+                tutOverlay.style.width = `${size}px`;
+                tutOverlay.style.height = `${size}px`;
+
+                // 가로 위치 재계산 로직 반복 (간략화)
+                let textLeft;
+                if (targetCenterX > window.innerWidth / 2) {
+                    textLeft = targetCenterX - (size / 2) - 310;
+                } else {
+                    textLeft = targetCenterX + (size / 2) + 30;
+                }
+                
+                tutText.style.left = `${Math.max(20, Math.min(window.innerWidth - 300, textLeft))}px`;
+                tutText.style.top = `${Math.max(100, Math.min(window.innerHeight - 150, targetCenterY - 50))}px`;
             }
         });
     </script>
