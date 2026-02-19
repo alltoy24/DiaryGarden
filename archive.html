@@ -1029,7 +1029,8 @@
 
             if (dir !== 'init') {
                 els.stage.style.opacity = '0';
-                setTimeout(() => { els.stage.style.opacity = '1'; closeStats(); }, 400);
+                // closeStats(true)를 넘겨서 소리 없이 패널만 초기화하도록 지시!
+                setTimeout(() => { els.stage.style.opacity = '1'; closeStats(true); }, 400); 
             }
 
             els.prevBtn.disabled = (idx >= archiveList.length - 1);
@@ -1060,9 +1061,13 @@
             els.toggleBtn.classList.add('hidden'); els.panel.classList.add('active');
             setTimeout(() => { document.querySelectorAll('.stat-fill').forEach(bar => { bar.style.width = bar.dataset.targetWidth; }); }, 300);
         }
-        function closeStats() {
-            playSfx(audioClick);
-            els.panel.classList.remove('active'); els.toggleBtn.classList.remove('hidden');
+        function closeStats(isSilent) {
+            // isSilent가 명시적으로 true일 때(강제 종료 시)는 소리를 내지 않음
+            if (isSilent !== true) {
+                playSfx(audioClick);
+            }
+            els.panel.classList.remove('active'); 
+            els.toggleBtn.classList.remove('hidden');
             document.querySelectorAll('.stat-fill').forEach(bar => { bar.style.width = '0%'; });
         }
 
