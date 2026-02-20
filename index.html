@@ -4603,7 +4603,11 @@
 
                 // ★ 1. 튜토리얼 대상자인지 먼저 확인
                 const isNewUser = Object.values(currentPoints).every(val => val === 0);
-                const needTutorial = isNewUser && !localStorage.getItem('geulsup_tutorial_done');
+                // 테스터 도장이 찍혀 있는지 확인
+                const isDevMode = localStorage.getItem('geulsup_dev_mode') === 'true'; 
+                
+                // 일반 뉴비이거나, '테스터' 계정일 때 튜토리얼 실행 (이미 완료했다면 제외)
+                const needTutorial = (isNewUser || isDevMode) && !localStorage.getItem('geulsup_tutorial_done');
 
                 // ★ 2. 튜토리얼을 안 해도 될 때만 메뉴 버튼을 즉시 보여줌 (틈새 클릭 원천 차단)
                 if (menuToggleBtn && !needTutorial && !isTutorialMode) {
