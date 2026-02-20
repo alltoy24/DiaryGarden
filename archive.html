@@ -893,35 +893,31 @@
             });
         }
 
-        // [수정] 로그인 상태 감지 (게스트 허용 로직 추가)
         auth.onAuthStateChanged(async (user) => {
-            
-            // 🔥 [해커톤 치트키] 테스터(개발자) 도장이 있는지 제일 먼저 확인! 🔥
+            // 🚨 순서 변경: 게스트인지 먼저 확인해야 로컬 데이터가 보입니다!
+            const isGuest = localStorage.getItem('geulsup_is_guest') === 'true';
+
+            if (isGuest) {
+                console.log("게스트 모드로 역사관 진입");
+                isGuestMode = true;
+                await loadData('guest'); // 로컬 일기장 로드
+                return; // 여기서 끝내야 테스터 로직으로 안 넘어감
+            }
+
+            // 그 다음에 테스터 도장 확인
             if (localStorage.getItem('geulsup_dev_mode') === 'true') {
                 console.log("👑 테스터 계정으로 역사관 프리패스 입장!");
                 isGuestMode = false;
-                await loadData('tester_dev_001'); // 테스터 DB에서 싹 긁어옴
-                return; // 여기서 통과시켜주고 함수 종료!
+                await loadData('tester_dev_001');
+                return;
             }
 
             if (user) {
-                // 1. 구글 로그인 회원인 경우
                 isGuestMode = false;
                 await loadData(user.uid);
             } else {
-                // 2. 로그인이 안 된 경우 -> 게스트인지 확인
-                const isGuest = localStorage.getItem('geulsup_is_guest') === 'true';
-                
-                if (isGuest) {
-                    // 일기를 안 썼어도 게스트 접속 상태면 통과!
-                    console.log("게스트 모드로 역사관 진입");
-                    isGuestMode = true;
-                    await loadData('guest'); 
-                } else {
-                    // 진짜 로그인을 안 한 사람만 쫓아냄
-                    alert("로그인 정보가 없습니다.");
-                    window.location.href = 'index.html';
-                }
+                alert("로그인 정보가 없습니다.");
+                window.location.href = 'index.html';
             }
         });
 

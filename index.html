@@ -2168,6 +2168,8 @@
             playSfx('sfx-click');
             guestWarningModal.classList.remove('active'); // 모달 닫기
 
+            localStorage.removeItem('geulsup_dev_mode');
+
             // 🔥 파이어베이스 참견 차단! 순수 로컬스토리지로 100% 독립 🔥
             isGuestMode = true;
             localStorage.setItem('geulsup_is_guest', 'true');
