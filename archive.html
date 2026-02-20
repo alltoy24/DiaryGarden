@@ -895,13 +895,21 @@
 
         // [수정] 로그인 상태 감지 (게스트 허용 로직 추가)
         auth.onAuthStateChanged(async (user) => {
+            
+            // 🔥 [해커톤 치트키] 테스터(개발자) 도장이 있는지 제일 먼저 확인! 🔥
+            if (localStorage.getItem('geulsup_dev_mode') === 'true') {
+                console.log("👑 테스터 계정으로 역사관 프리패스 입장!");
+                isGuestMode = false;
+                await loadData('tester_dev_001'); // 테스터 DB에서 싹 긁어옴
+                return; // 여기서 통과시켜주고 함수 종료!
+            }
+
             if (user) {
                 // 1. 구글 로그인 회원인 경우
                 isGuestMode = false;
                 await loadData(user.uid);
             } else {
                 // 2. 로그인이 안 된 경우 -> 게스트인지 확인
-                // [핵심 변경] 일기 데이터 유무가 아니라 '게스트 로그인 여부' 자체를 확인합니다.
                 const isGuest = localStorage.getItem('geulsup_is_guest') === 'true';
                 
                 if (isGuest) {
@@ -1228,8 +1236,13 @@
                             .sort((a, b) => a.date_str.localeCompare(b.date_str));
                     }
                 } else {
-                    // [Member] Firebase 쿼리 (기존 방식)
-                    const snapshot = await db.collection('users').doc(auth.currentUser.uid).collection('diaries')
+                    // 🔥 [해커톤 치트키] 테스터 모드면 강제로 tester_dev_001 UID 사용 🔥
+                    const targetUid = localStorage.getItem('geulsup_dev_mode') === 'true' 
+                                      ? 'tester_dev_001' 
+                                      : auth.currentUser.uid;
+
+                    // [Member & Tester] Firebase 쿼리
+                    const snapshot = await db.collection('users').doc(targetUid).collection('diaries')
                         .where('date_str', '>=', startStr).where('date_str', '<=', endStr)
                         .orderBy('date_str', 'asc')
                         .get();
