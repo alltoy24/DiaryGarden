@@ -131,8 +131,8 @@
 
         #diary-textarea::placeholder {
             color: #555;
-            font-family: 'Nanum Myeongjo', serif;
-            font-size: 1rem;
+            font-family: 'Nanum Pen Script', cursive;
+            font-size: inherit; /* 부모의 글자 크기를 그대로 물려받음 */
         }
 
         /* 5. 버튼 및 기타 요소 */
@@ -3135,17 +3135,12 @@
             isParallaxOn = e.target.checked;
             
             if (!isParallaxOn) {
-                // 끄면 모든 섬을 중앙 정렬로 초기화 (깔끔하게)
-                const allObjects = document.querySelectorAll('.scene-object');
-                allObjects.forEach(obj => {
-                    // 원래 위치(baseX, baseY)로 복귀, translate는 0으로
-                    // (단, world-focused 상태일 때는 건드리지 않아야 함)
-                    if(!document.body.classList.contains('world-focused')) {
-                        obj.style.transform = `translate(-50%, 0px)`; 
-                    }
-                });
+                resetIslandsPosition(); // 위에서 만든 함수 사용
+            } else {
+                // 다시 켰을 때 즉시 부드럽게 움직이도록 처리
+                requestAnimationFrame(updateParallax);
             }
-            saveSettings(); // 추가!
+            saveSettings();
         });
 
         // 2. Firebase 설정 (윤호님의 설정값 그대로 유지)
@@ -4568,7 +4563,11 @@
 
                 cloudFloor.style.opacity = '1'; 
                 hudLayer.style.opacity = '1'; 
-                updateParallax(); 
+                updateParallax();
+
+                if (!isParallaxOn) {
+                    resetIslandsPosition();
+                }
 
                 // ★ 1. 튜토리얼 대상자인지 먼저 확인
                 const isNewUser = Object.values(currentPoints).every(val => val === 0);
@@ -4609,6 +4608,11 @@
                 uiLayer.style.transition = 'none'; 
                 uiLayer.style.opacity = 0;
                 enterGardenMode(true);
+
+                // 시점 흔들림이 꺼져 있다면 섬 위치 강제 리셋
+                if (!isParallaxOn) {
+                    resetIslandsPosition();
+                }
             }
 
             // 2. [수정됨] 역사관에서 "리포트 만들기" 누르고 옴
@@ -4622,6 +4626,26 @@
                 enterGardenMode(true); 
             }
         });
+
+        function resetIslandsPosition() {
+            const allObjects = document.querySelectorAll('.scene-object');
+            allObjects.forEach(obj => {
+                // world-focused(섬 클릭해서 패널 열린 상태)가 아닐 때만 초기화
+                if(!document.body.classList.contains('world-focused')) {
+                    // HTML에 적힌 data-base-x, data-base-y 값을 가져와서 직접 꽂아줌
+                    const baseX = obj.dataset.baseX;
+                    const baseY = obj.dataset.baseY;
+                    
+                    if (baseX && baseY) {
+                        obj.style.left = `${baseX}%`;
+                        obj.style.top = `${baseY}%`;
+                    }
+                    
+                    // 흔들림 이동값 초기화
+                    obj.style.transform = `translate(-50%, 0px)`; 
+                }
+            });
+        }
 
         initIntroParticles(); animateParticles();
         // --- [추가] F3 키로 정원사 모드 토글 ---
