@@ -488,6 +488,7 @@
         let globalBGMVolume = 0.3;
         let isParallaxOn = true;
         let isGuestMode = false;
+        let isTutTransitioning = false;
 
         // ==========================================
         // [튜토리얼 시스템 (Archive 버전)]
@@ -566,9 +567,6 @@
             // 1. 여기서 무조건 텍스트를 NEXT로 쾅 박아줍니다.
             tutNextBtn.innerHTML = "NEXT ❯"; 
             
-            // 시작 효과음 (이건 최초 실행이니까 바로 나와도 됨)
-            playSfx('sfx-tut-1', 1.2); 
-
             tutBlocker.classList.add('active');
             tutOverlay.classList.add('active');
             
@@ -579,6 +577,9 @@
             setTimeout(() => {
                 moveSpotlight(document.querySelector('.date-display'), "시간의 흐름", "기억의 서고에 오신 것을 환영합니다.<br>화살표를 눌러 과거에 가꾸었던 정원들을 둘러볼 수 있습니다.", 40);
                 
+                // ★ 스포트라이트가 이동하는 0.65초 뒤에 최초 시작 효과음 재생 (싱크 맞춤)
+                setTimeout(() => { playSfx('sfx-tut-1', 1.2); }, 650);
+
                 // 3. 스포트라이트가 이동하는 시간(약 0.65초)을 기다렸다가, 1초 뒤에 버튼 등장! (총 1.65초 대기)
                 setTimeout(() => {
                     tutNextBtn.classList.add('active');
@@ -587,14 +588,23 @@
             }, 100); 
         }
 
-        // NEXT 버튼 로직 (설계한 5단계 흐름)
+        // NEXT 버튼 로직 (설계한 5단계 흐름 + 광클 방지)
         tutNextBtn.addEventListener('click', () => {
+            // 🔥 애니메이션이 진행 중이면 클릭을 아예 무시 (광클 차단)
+            if (isTutTransitioning) return; 
+            
+            isTutTransitioning = true; // 문 잠금 🔒
+            tutNextBtn.style.opacity = '0.5'; 
+            tutNextBtn.style.pointerEvents = 'none';
+
             playSfx('sfx-click'); // 버튼 누르는 '딸깍' 소리는 즉시 재생
 
             // 스포트라이트가 이동하는 타이밍(0.65초)에 맞춰 효과음을 내는 도우미 함수
             const playDelayedSfx = (sfxId) => {
                 setTimeout(() => { playSfx(sfxId); }, 650);
             };
+
+            let unlockTime = 800; // 잠금 해제 기본 시간
 
             if (tutorialStep === 1) {
                 tutorialStep = 2;
@@ -632,8 +642,22 @@
                 tutOverlay.style.width = '200vw'; tutOverlay.style.height = '200vh';
                 
                 isTutorialMode = false;
+                tutorialStep = 0;
                 localStorage.setItem('geulsup_archive_tutorial_done', 'true'); 
+
+                // 종료 시 락 해제
+                isTutTransitioning = false; 
+                tutNextBtn.style.opacity = '1';
+                tutNextBtn.style.pointerEvents = 'auto';
+                return; // 종료되었으므로 함수 완전히 끝내기
             }
+
+            // ⏱️ 지정된 시간(unlockTime)이 지나면 문 잠금 해제 🔓
+            setTimeout(() => {
+                isTutTransitioning = false;
+                tutNextBtn.style.opacity = '1';
+                tutNextBtn.style.pointerEvents = 'auto';
+            }, unlockTime);
         });
 
         // 리사이즈 대응

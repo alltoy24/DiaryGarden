@@ -1987,6 +1987,7 @@
         let cachedDiaries = []; // 🧺 일기 데이터를 미리 담아둘 바구니
         let thisMonthDiaries = [];
         let shootingStars = [];
+        let isTutTransitioning = false;
 
         const seasonModal = document.getElementById('season-modal');
         const seasonLoading = document.getElementById('season-loading');
@@ -2243,14 +2244,42 @@
             }, 100); 
         }
 
+        // NEXT 버튼 로직
         tutNextBtn.addEventListener('click', () => {
+            // 애니메이션이 진행 중이면 클릭을 아예 무시하고 돌려보냄 (광클 차단)
+            if (isTutTransitioning) return; 
+            
+            isTutTransitioning = true; // 문 잠금 🔒
+            
+            // 버튼을 시각적으로도 살짝 투명하게 해서 눌리지 않음을 표현 (선택 사항)
+            tutNextBtn.style.opacity = '0.5'; 
+            tutNextBtn.style.pointerEvents = 'none';
+
             playSfx('sfx-click');
 
             const playDelayedSfx = (sfxId, vol = 1.0) => {
                 setTimeout(() => { playSfx(sfxId, vol); }, 650);
             };
 
-            if (tutorialStep === 2) {
+            let unlockTime = 800; // 기본 잠금 해제 시간 (0.8초)
+
+            if (tutorialStep === 1) {
+                tutorialStep = 2;
+                diaryOpenBtn.classList.remove('tut-z-up'); 
+                
+                tutBlocker.classList.add('modal-top');
+                tutOverlay.classList.add('modal-top');
+                tutText.classList.add('modal-top'); 
+                
+                unlockTime = 1000; // 1단계는 모달 뜨는 시간이 있어서 조금 더 길게 잠금
+
+                setTimeout(() => {
+                    tutNextBtn.classList.add('active'); 
+                    moveSpotlight(diaryTextarea, "기억의 파편", "이곳에 오늘 있었던 일이나 감정을 적습니다.<br>최소 30자 이상 작성해야 합니다.", 40);
+                    setTimeout(() => { playSfx('sfx-tut-2', 1.0); }, 650);
+                }, 850); 
+            }
+            else if (tutorialStep === 2) {
                 tutorialStep = 3;
                 moveSpotlight(diarySubmitBtn, "나무 심기 (기록 제출)", "기록이 끝나면 이 버튼을 눌러주세요.<br>작성한 글은 정원의 양분이 됩니다.", 20);
                 playDelayedSfx('sfx-tut-2');
@@ -2260,22 +2289,59 @@
                 moveSpotlight(diaryCloseX, "창 닫기", "작성을 마치거나 취소하고 싶을 때는<br>이 버튼을 눌러 정원으로 돌아갑니다.", 30);
                 playDelayedSfx('sfx-tut-3', 1.0);
             }
-            // ★ 새로 추가된 4 -> 5단계 전환 로직
             else if (tutorialStep === 4) {
                 tutorialStep = 5;
                 
-                // 1. 일기장을 강제로 부드럽게 닫기
                 diaryModal.classList.remove('active');
-                
-                // 2. 숨겨뒀던 메뉴 버튼 등장시키기
-                if (menuToggleBtn) menuToggleBtn.classList.add('visible');
-                
-                // 3. z-index 방패 정리 (일기장에서 쓰던 모달용 최상단 해제)
                 tutBlocker.classList.remove('modal-top');
                 tutOverlay.classList.remove('modal-top');
                 tutText.classList.remove('modal-top');
                 
-                // 4. 메뉴 버튼 조준!
+                tutOverlay.style.top = '50%';
+                tutOverlay.style.left = '50%';
+                tutOverlay.style.width = '0px';
+                tutOverlay.style.height = '0px';
+
+                const islands = document.querySelectorAll('.island');
+                islands.forEach(isl => {
+                    isl.style.transition = 'opacity 0.3s ease'; 
+                    isl.style.opacity = '0'; 
+                    isl.classList.add('tut-z-up'); 
+                });
+
+                islands.forEach((isl, index) => {
+                    setTimeout(() => {
+                        isl.style.opacity = '1'; 
+                        playSfx('sfx-click', 0.6); 
+                    }, 500 + (index * 200)); 
+                });
+
+                tutText.classList.remove('active');
+                setTimeout(() => {
+                    tutText.querySelector('.tut-title').innerText = "다섯 가지 마음의 정원";
+                    tutText.querySelector('.tut-desc').innerHTML = "당신의 일기는 AI 분석을 통해 <span style='color:#ff6b6b'>용기</span>, <span style='color:#4db8ff'>지혜</span>, <span style='color:#ff85a2'>친절</span>, <span style='color:#2ecc71'>성실</span>, <span style='color:#81ecec'>평온</span> 중 하나의 양분이 되어 각각의 섬을 진화시킵니다.";
+                    
+                    tutText.style.top = 'auto';
+                    tutText.style.bottom = '120px';
+                    tutText.style.left = '50%';
+                    tutText.style.transform = 'translateX(-50%)';
+                    tutText.style.textAlign = 'center';
+                    tutText.style.alignItems = 'center';
+                    tutText.style.width = '350px'; 
+                    
+                    tutText.classList.add('active');
+                }, 1500); 
+
+                unlockTime = 1600; // 💡 5단계는 섬 5개가 순차적으로 켜지므로 1.6초 동안 버튼 잠금!
+            }
+            else if (tutorialStep === 5) {
+                tutorialStep = 6; 
+                
+                document.querySelectorAll('.island').forEach(isl => isl.classList.remove('tut-z-up'));
+                
+                if (menuToggleBtn) menuToggleBtn.classList.add('visible');
+                tutText.style.width = '280px';
+                
                 moveSpotlight(menuToggleBtn, "시스템 메뉴", 
                     "우측 상단의 메뉴를 열어 내 프로필, 정원 설정, 그리고<br>과거의 기록이 담긴 <b>'역사관'</b>에 입장할 수 있습니다.<br><br>" +
                     "<span style='font-size: 0.85rem; color: #888; border-top: 1px solid #333; display: block; padding-top: 10px; margin-top: 10px;'>" +
@@ -2284,19 +2350,17 @@
                 );
                 playDelayedSfx('sfx-tut-3', 1.0);
                 
-                // 5. 글자 변경
-                setTimeout(() => {
-                    tutNextBtn.innerHTML = "FINISH ❯"; 
-                }, 650);
+                setTimeout(() => { tutNextBtn.innerHTML = "FINISH ❯"; }, 650);
             }
-            // ★ 5단계 종료 로직
-            else if (tutorialStep === 5) {
+            else if (tutorialStep === 6) {
                 playSfx('sfx-clear', 0.5);
                 tutBlocker.classList.remove('active', 'modal-top');
                 tutOverlay.classList.remove('active', 'modal-top');
                 tutText.classList.remove('active', 'modal-top');
                 tutNextBtn.classList.remove('active');
                 
+                document.querySelectorAll('.island').forEach(isl => isl.classList.remove('tut-z-up'));
+
                 tutOverlay.style.top = '50%'; tutOverlay.style.left = '50%';
                 tutOverlay.style.width = '200vw'; tutOverlay.style.height = '200vh';
 
@@ -2305,8 +2369,23 @@
                 localStorage.setItem('geulsup_tutorial_done', 'true'); 
                 
                 tutText.style.bottom = ''; tutText.style.left = '';
-                tutText.style.transform = ''; 
+                tutText.style.transform = ''; tutText.style.width = '';
                 tutNextBtn.innerHTML = "NEXT ❯"; 
+                
+                // 종료 시 락 해제
+                isTutTransitioning = false; 
+                tutNextBtn.style.opacity = '1';
+                tutNextBtn.style.pointerEvents = 'auto';
+                return; // 종료되었으므로 아래 잠금 해제 로직을 타지 않음
+            }
+
+            // ⏱️ 지정된 시간(unlockTime)이 지나면 문 잠금 해제 🔓
+            if (tutorialStep <= 6) {
+                setTimeout(() => {
+                    isTutTransitioning = false;
+                    tutNextBtn.style.opacity = '1'; // 버튼 원상복구
+                    tutNextBtn.style.pointerEvents = 'auto'; // 버튼 클릭 활성화
+                }, unlockTime);
             }
         });
 
