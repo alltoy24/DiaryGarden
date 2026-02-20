@@ -3339,22 +3339,21 @@
             if(e.target === profileModal) profileModal.classList.remove('active');
         });
 
-        // [수정 완료] 로그인 상태 감지 및 데이터 로드 로직 (전체)
         auth.onAuthStateChanged(async (user) => {
             
-            // 🔥 [테스터 계정 전용 로직] 🔥
+            // 🔥 [1] 테스터(데모) 계정 전용 로직 🔥
             if (localStorage.getItem('geulsup_dev_mode') === 'true') {
                 isGuestMode = false;
                 currentUser = { uid: "tester_dev_001", email: "test@test.com" }; 
                 globalUserData = { nickname: "심사위원" }; 
                 globalUserRef = db.collection('users').doc(currentUser.uid);
 
-                // UI 초기화 (로그인 버튼 숨기기)
+                // UI 세팅
                 document.getElementById('google-login-btn').style.display = 'none';
                 document.getElementById('guest-login-btn').style.display = 'none';
                 logoutBtn.style.display = 'block';
 
-                // 1. 테스터 기본 정보 및 점수 로드
+                // 1. 테스터 데이터 로드
                 const userDoc = await globalUserRef.get();
                 let userData = {};
                 if(userDoc.exists) {
@@ -3363,10 +3362,9 @@
                     else if(userData.points) currentPoints = userData.points;
                 }
                 
-                // 2. 전체 일기 데이터 로드
                 await loadAllDiaries(currentUser.uid);
 
-                // 3. [시나리오 A] 역사관에서 '리포트 만들기'를 누르고 넘어온 경우 (강제 실행)
+                // 2. [시나리오 A] 역사관에서 '지금 만들기'를 누르고 넘어온 경우 (강제 실행)
                 if (sessionStorage.getItem('forceSeasonReport') === 'true') {
                     sessionStorage.removeItem('forceSeasonReport');
                     const targetDate = sessionStorage.getItem('targetPeriod'); 
@@ -3374,43 +3372,37 @@
 
                     if (targetDate) {
                         enterGardenMode(true); 
+                        // 🚨 에러 수정: targetDate(문자열)를 첫 번째 인자로 전달
                         await showSeasonReport(targetDate, globalUserRef, "2026-02", true);
                     }
                     return;
                 }
 
-                // 4. 🔥 [시나리오 B] 로그인하자마자 달력 체크 후 자동 팝업 (자동 알림) 🔥
+                // 3. [시나리오 B] 🔥 로그인하자마자 달력 체크 후 자동 팝업 🔥
                 const now = new Date();
                 const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                 const savedPeriod = userData.last_period || ""; 
                 const promptSeenKey = `geulsup_prompt_seen_${currentPeriod}`;
 
-                // 조건: DB상 마지막 달이 현재와 다름 + 아직 알림 안 봄
                 if (savedPeriod && savedPeriod !== currentPeriod && localStorage.getItem(promptSeenKey) !== 'true') {
-                    // 지난달(savedPeriod) 일기가 몇 개인지 체크 (5개 이상이면 팝업)
-                    const lastMonthDiariesCount = cachedDiaries.filter(d => {
-                        const dDate = d.date_str || "";
-                        return dDate.startsWith(savedPeriod);
-                    }).length;
+                    const lastMonthCount = cachedDiaries.filter(d => d.date_str && d.date_str.startsWith(savedPeriod)).length;
 
-                    if (lastMonthDiariesCount >= 5) {
+                    if (lastMonthCount >= 5) {
                         const noticeModal = document.getElementById('season-notice-modal');
                         if (noticeModal) {
                             noticeModal.style.visibility = 'visible';
                             noticeModal.style.opacity = '1';
                             playSfx('sfx-click'); 
 
-                            // '지금 엮기' 클릭 시
                             document.getElementById('btn-season-now').onclick = () => {
                                 playSfx('sfx-click');
                                 noticeModal.style.opacity = '0';
                                 setTimeout(() => { noticeModal.style.visibility = 'hidden'; }, 500);
                                 localStorage.setItem(promptSeenKey, 'true');
-                                // 시네마틱 리포트 실행 (isBackfill = false로 연출 포함)
-                                showSeasonReport(userData.total_points, savedPeriod, globalUserRef, currentPeriod, currentUser.uid);
+                                // 🚨 에러 수정: savedPeriod(문자열)를 첫 번째 인자로 전달!
+                                showSeasonReport(savedPeriod, globalUserRef, currentPeriod, false);
                             };
 
-                            // '나중에' 클릭 시
                             document.getElementById('btn-season-later').onclick = () => {
                                 playSfx('sfx-click');
                                 noticeModal.style.opacity = '0';
@@ -3421,21 +3413,21 @@
                     }
                 }
 
-                // 5. 평범한 정원 진입 시 UI 세팅 (섬 이미지 갱신)
+                // 4. 기본 정원 진입 세팅 (섬 이미지 갱신)
                 showEnterButton("심사위원 (테스터)");
                 const virtues = ['courage', 'wisdom', 'kindness', 'diligence', 'serenity'];
                 virtues.forEach(v => {
-                    const p = currentPoints[v] || 125; // 아까 넣으신 125점 반영
+                    const p = currentPoints[v] || 125; 
                     const slider = document.getElementById(`rng-${v}`);
                     const display = document.getElementById(`val-${v}`);
                     if (slider) slider.value = p;
                     if (display) display.innerText = p;
                     updateIslandVisual(v, p);
                 });
-                return;
+                return; // 테스터 로직 종료
             }
 
-            // --- 아래는 일반 게스트 및 구글 로그인 유저 로직 (기존 코드 유지) ---
+            // --- 아래는 일반 유저/게스트 로직 (기존 그대로 유지) ---
             if (isGuestMode) return;
 
             if (user) {
@@ -3465,7 +3457,6 @@
                         currentPoints = { ...currentPoints, ...userData.total_points };
                         applyPointsToWorld();
                     }
-                    // (일반 유저용 리포트 체크 로직... 중복이므로 생략 가능하나 원본 유지 권장)
                 } else {
                     document.getElementById('nickname-modal').classList.add('active');
                 }
