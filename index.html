@@ -7,7 +7,6 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
     
     <style>
@@ -243,6 +242,54 @@
         #tooltip-en { font-family: 'Cinzel', serif; font-size: 0.7rem; color: rgba(255, 255, 255, 0.7); letter-spacing: 0.2rem; text-transform: uppercase; }
         .tooltip-level { font-family: 'Cinzel', serif; font-size: 0.8rem; color: #ffd700; margin-top: 5px; } /* 레벨 표시 추가 */
 
+        .diary-window, .settings-window, .profile-window, .detail-window, 
+        .result-window, .confirm-window, .warning-window,
+        #current-month-notice > div, #season-notice-modal > div,
+        .report-paper { /* archive용 */
+            max-width: 90vw !important;  /* 절대 화면 너비의 90%를 넘지 않음 */
+            max-height: 85vh !important; /* 절대 화면 높이의 85%를 넘지 않음 */
+            overflow-y: auto !important; /* 공간이 부족해지면 내부 스크롤 자동 생성 */
+            scrollbar-width: thin;       /* 내부 스크롤바 얇게 처리 */
+        }
+
+        /* 2. 화면이 심하게 확대되어 높이가 좁아졌을 때 UI 크기 일괄 축소 */
+        @media screen and (max-height: 750px) {
+            .main-title { font-size: 3.5rem !important; }
+            .sub-title { font-size: 1rem !important; }
+            #hud-time { font-size: 1.2rem !important; }
+            #diary-open-btn { 
+                padding: 15px 25px !important; 
+                margin: -15px -25px !important; 
+                font-size: 0.9rem !important; 
+            }
+        }
+
+        /* 3. 극단적으로 확대했을 때 (비상사태) 주요 버튼들 여백 좁히고 스케일 축소 */
+        @media screen and (max-height: 600px) {
+            .main-title { font-size: 2.5rem !important; }
+            #hud-layer { top: 15px !important; left: 15px !important; }
+            
+            #diary-open-btn { 
+                bottom: 20px !important; 
+                right: 20px !important; 
+                transform: scale(0.85); 
+                transform-origin: bottom right;
+            }
+            #menu-toggle-btn { 
+                top: 15px !important; 
+                right: 20px !important; 
+                transform: scale(0.85); 
+                transform-origin: top right;
+            }
+            
+            /* 튜토리얼 텍스트가 화면을 가리지 않게 축소 */
+            .tutorial-msg { 
+                transform: scale(0.85) !important; 
+                transform-origin: center; 
+            }
+            /* 아카이브 3D 책 축소 */
+            .book-scene { transform: scale(0.7); }
+        }
         /* HUD */
         #hud-layer {
             position: fixed; top: 30px; left: 15px; z-index: 90; opacity: 0; transition: opacity 3s ease-in-out;
@@ -2011,9 +2058,6 @@
 
         const seasonModal = document.getElementById('season-modal');
         const seasonLoading = document.getElementById('season-loading');
-        const seasonContent = document.getElementById('season-content');
-        const seasonTypoList = document.getElementById('season-typo-list');
-        const seasonActions = document.getElementById('season-actions');
         const seasonResetBtn = document.getElementById('season-reset-btn');
 
         let currentUser = null;
