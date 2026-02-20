@@ -1476,6 +1476,54 @@
             z-index: 9; /* 배경(z-index 0~2)보다 위, 3D 무대(z-index 10)보다 아래 */
             pointer-events: none; /* 클릭은 통과시켜서 섬 조작에 방해 안 되게 설정 */
         }
+        .daily-quote {
+            position: absolute;
+            top: 12%; /* 화면 상단에서 살짝 띄움 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            text-align: center;
+            font-family: 'Nanum Myeongjo', serif;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.85); /* 살짝 투명한 흰색 */
+            letter-spacing: 0.15rem;
+            line-height: 1.6;
+            z-index: 80; /* 섬보다는 위, 다른 모달보단 아래 */
+            
+            /* 신비로운 느낌의 텍스트 그림자 */
+            text-shadow: 0 0 20px rgba(212, 175, 55, 0.5), 0 2px 5px rgba(0, 0, 0, 0.8);
+            
+            /* 처음엔 안 보이다가 부드럽게 나타남 */
+            opacity: 0; 
+            pointer-events: none; /* 클릭 방해 안 되게 */
+        }
+
+        /* 정원에 들어갔을 때 나타나고 사라지는 15초짜리 서사 애니메이션 */
+        .daily-quote.show {
+            /* 1.5초 딜레이 후 시작, 총 15초간 애니메이션 진행, 끝나면 최종 상태(투명) 유지(forwards) */
+            animation: quoteLifecycle 8s cubic-bezier(0.25, 1, 0.5, 1) forwards 1.5s;
+        }
+
+        @keyframes quoteLifecycle {
+            /* 0% ~ 15% (약 2.2초): 아래에서 위로 스르륵 등장 */
+            0% { opacity: 0; transform: translate(-50%, 15px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            
+            /* 15% ~ 85% (약 10.5초): 화면에 예쁘게 머무름 (유저가 글을 음미하는 시간) */
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            
+            /* 85% ~ 100% (약 2.2초): 위로 스르륵 흩어지며 퇴장 */
+            100% { opacity: 0; transform: translate(-50%, -15px); }
+        }
+
+        /* 모바일 화면 대응 */
+        @media screen and (max-width: 768px) {
+            .daily-quote {
+                top: 15%;
+                font-size: 0.9rem;
+                letter-spacing: 0.1rem;
+            }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1536,6 +1584,8 @@
             <div id="hud-time">00:00</div>
         </div>
     </div>
+
+    <div id="daily-quote-display" class="daily-quote"></div>
 
     <div id="world-container">
         <div id="sky-bg"></div>
@@ -2942,6 +2992,21 @@
                 alert("백업 파일 생성 중 오류가 발생했습니다.");
             }
         });
+
+        async function fetchDailyQuote() {
+            try {
+                // 본인의 서버 주소로 변경 (예: https://guelforest-server.onrender.com/api/daily-quote)
+                const response = await fetch("https://guelforest-server.onrender.com/api/daily-quote"); 
+                const data = await response.json();
+                
+                const quoteElement = document.getElementById('daily-quote-display');
+                if (quoteElement) {
+                    quoteElement.innerText = `"${data.quote}"`; // 양옆에 따옴표 추가해서 감성 업
+                }
+            } catch (error) {
+                console.error("덕담 로드 실패:", error);
+            }
+        }
 
         // [6] 테마 버튼 로직
         const themeBtns = document.querySelectorAll('#theme-group .opt-btn');
@@ -4496,6 +4561,8 @@
                 isGardenMode = true;
                 const allSceneObjects = document.querySelectorAll('.scene-object');
                 allSceneObjects.forEach((obj) => { obj.classList.add('visible'); });
+                const quoteEl = document.getElementById('daily-quote-display');
+                if(quoteEl) quoteEl.classList.add('show');
 
                 if (diaryOpenBtn) diaryOpenBtn.classList.add('visible');
 
@@ -4534,6 +4601,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             loadSettings();
+            fetchDailyQuote();
 
             // 1. 역사관에서 '정원으로 돌아가기'로 옴 (타이틀 스킵)
             if (sessionStorage.getItem('skipIntro') === 'true') {
