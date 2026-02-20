@@ -31,6 +31,10 @@
             flex-direction: column;
             align-items: center;
             pointer-events: none;
+
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 70%);
+            padding: 20px 40px; /* 후광이 예쁘게 퍼지도록 패딩을 넉넉하게 줌 */
+            margin: -20px -40px; /* 커진 패딩만큼 위치 보정 */
         }
 
         #diary-open-btn.visible { 
@@ -241,9 +245,14 @@
 
         /* HUD */
         #hud-layer {
-            position: fixed; top: 30px; left: 30px; z-index: 90; opacity: 0; transition: opacity 3s ease-in-out;
+            position: fixed; top: 30px; left: 15px; z-index: 90; opacity: 0; transition: opacity 3s ease-in-out;
             font-family: 'Nanum Myeongjo', serif; color: rgba(255, 255, 255, 0.8);
             display: flex; align-items: center; pointer-events: none;
+
+            /* ✨ 추가: 시계 뒤에 넓은 원형 후광 */
+            background: radial-gradient(ellipse at left center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 70%);
+            padding: 20px 50px 20px 20px; 
+            margin: -20px -50px -20px -20px;
         }
         #hud-line { width: 1px; height: 35px; background-color: rgba(255,255,255,0.4); margin-right: 15px; }
         #hud-text-group { display: flex; flex-direction: column; }
@@ -1411,6 +1420,15 @@
         .tut-desc {
             word-break: keep-all; /* 단어 단위로 줄바꿈되어 깔끔해짐 */
         }
+        #ui-vignette-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            /* 중앙은 투명하고, 가장자리로 갈수록 어두워지는 원형 그라데이션 */
+            background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.4) 70%, rgba(0, 0, 0, 0.9) 100%);
+            z-index: 9; /* 배경(z-index 0~2)보다 위, 3D 무대(z-index 10)보다 아래 */
+            pointer-events: none; /* 클릭은 통과시켜서 섬 조작에 방해 안 되게 설정 */
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1509,6 +1527,8 @@
                 <img id="img-kindness" src="images/island_kindness_1.png" alt="친절">
             </div>
         </div>
+
+        <div id="ui-vignette-layer"></div>
     </div>
 
     <div id="ui-layer">
